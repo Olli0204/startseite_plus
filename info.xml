@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jtlshopplugin>
+    <Name>Startseite Plus</Name>
+    <Description>Portlets für die Startseite</Description>
+    <Author>Oliver Kamps</Author>
+    <URL>https://ollipolli.de</URL>
+    <XMLVersion>102</XMLVersion>
+    <MinShopVersion>5.5.1</MinShopVersion>
+    <MaxShopVersion>5.5.3</MaxShopVersion>
+    <PluginID>startseite_plus</PluginID>
+    <Version>1.0.2</Version>
+    <CreateDate>2025-06-23</CreateDate>
+    <Install>
+        <Portlets>
+            <Portlet>
+                <Title>Slider Plus</Title>
+                <Class>sliderPlus</Class>
+                <Group>Startseite Plus</Group>
+                <Active>1</Active>
+            </Portlet>
+            <Portlet>
+                <Title>Heading</Title>
+                <Class>headingPlus</Class>
+                <Group>Startseite Plus</Group>
+                <Active>1</Active>
+            </Portlet>
+            <Portlet>
+                <Title>Bilder Box</Title>
+                <Class>pictureBox</Class>
+                <Group>Startseite Plus</Group>
+                <Active>1</Active>
+            </Portlet>
+        </Portlets>
+        <PortletInputTypes>
+            <PortletInputType>
+                <Name>image-set-button</Name>
+            </PortletInputType>
+        </PortletInputTypes>
+    </Install>
+</jtlshopplugin>
