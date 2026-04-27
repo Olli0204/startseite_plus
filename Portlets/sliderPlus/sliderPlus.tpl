@@ -2,7 +2,7 @@
     .button-slider-index {
         background-color: rgba(82, 82, 82, 0.8);
         color: white;
-        border: 1px solid;
+        border: none;
         padding: 5px 20px 5px 20px;
         font-size: 20px;
         border-radius: 25px;
