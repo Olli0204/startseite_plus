@@ -2,8 +2,7 @@
     .button-slider-index {
         background-color: rgba(82, 82, 82, 0.8);
         color: white;
-        borderstyle: solid;
-        border: 1px;
+        border: 1px solid;
         padding: 5px 20px 5px 20px;
         font-size: 20px;
         border-radius: 25px;
@@ -43,7 +42,7 @@
             <span style="font-size: 12px; font-weight: bold; text-transform: uppercase;">Slider-Plus</span>
         </div>
     </div>
-    
+
 {else}
     {$slides = $instance->getProperty('slides')}
     <div id="{$instance->getProperty('name')}-slider" class="carousel slide" data-ride="carousel" data-interval="8000" data-pause="hover">
@@ -62,15 +61,15 @@
                         {image
                             src=$imgAttribs.src
                             alt=$imgAttribs.alt|escape:'html'
-                            title=$slideTitle|escape:'html'
+                            title=$imgAttribs.title|escape:'html'
                             class="head-banner-main"
                             style="width: 100%;"
                             data=['desc' => $slide.desc|escape:'html']}
                         <div class="carousel-caption slider-text">
-                            <h2 style="color: #fff; font-type: bold;">{$slide.title}</h2>                        
+                            <h2 style="color: #fff; font-type: bold;">{$slide.title}</h2>
                             <button class="button-slider-index" type="button">
                                 <a href="{$slide.link}" class="slider-button-text" style="color: white; text-decoration: none;">{$slide.button}</a>
-                            </button>                   
+                            </button>
                         </div>
                     </div>
                 {/foreach}

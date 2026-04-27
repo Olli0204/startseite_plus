@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Plugin\startseite_plus\Portlets\PictureBox;
+namespace Plugin\startseite_plus\Portlets\pictureBox;
 
 use JTL\OPC\Portlet;
 
