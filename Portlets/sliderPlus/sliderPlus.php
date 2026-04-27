@@ -1,13 +1,18 @@
 <?php declare(strict_types=1);
-namespace Plugin\startseite_plus\Portlets\SliderPlus;
+namespace Plugin\startseite_plus\Portlets\sliderPlus;
 
 use JTL\OPC\Portlet;
 
 class sliderPlus extends Portlet {
 
-    
-    public function getPropertyDesc(): array{
-    return [
+    public function getButtonHtml(): string
+    {
+        return $this->getFontAwesomeButtonHtml('fas fa-images');
+    }
+
+    public function getPropertyDesc(): array
+    {
+        return [
             'name'   => [
                 'label'   => __('Name'),
                 'type'    => 'text',
@@ -18,16 +23,17 @@ class sliderPlus extends Portlet {
             ],
             'slides' => [
                 'label'     => \__('images'),
-                'type'  => 'startseite_plus.image-set-button',
+                'type'      => 'startseite_plus.image-set-button',
                 'default'   => [],
                 'useTitles' => true,
-                'useLinks' => true,
+                'useLinks'  => true,
                 'useButton' => true,
             ],
         ];
     }
 
-    public function getPropertyTabs(): array{
+    public function getPropertyTabs(): array
+    {
         return [
             __('Slides') => ['slides'],
         ];

@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-namespace Plugin\startseite_plus\Portlets\HeadingPlus;
+namespace Plugin\startseite_plus\Portlets\headingPlus;
 
 use JTL\OPC\Portlet;
 

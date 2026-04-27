@@ -26,18 +26,18 @@
         border-style: solid;
         border-width: 1px;
         border-color: #808080;
-    } 
+    }
 
     .bilder_box div div {
         position: relative;
         width: 200px;
-        margin: -45px auto 0px auto; 
+        margin: -45px auto 0px auto;
         font-size: 20px;
         border-style: solid;
         border-width: 1px;
         border-color: transparent;
         border-radius: 5px;
-        background-color: rgba(255, 255, 255, 0.75); 
+        background-color: rgba(255, 255, 255, 0.75);
     }
 
     .bilder_box div a {
@@ -61,7 +61,7 @@
             margin-left: 0px;
             margin-right: 0px;
             width: 99%;
-        } 
+        }
         .bilder_box {
             flex-wrap: wrap;
         }
@@ -75,13 +75,13 @@
 {if $isPreview}
     <div class="text-center" style="color: #5cbcf6; display: flex; flex-direction: column; justify-content: center; height: 64px;">
         <div>
-            <i class="far fa-object-group">
+            <i class="far fa-object-group"></i>
             <span style="font-size: 12px; font-weight: bold; text-transform: uppercase;">Bilder Box</span>
         </div>
     </div>
 {else}
 <div class="big_bilder_box">
-    {foreach $instance->getProperty('slides') as $i => $slide}
+    {foreach $slides as $i => $slide}
         {if $i % 2 == 0}
             <div class="bilder_box" {if $isMobile} style="flex-wrap: wrap;" {/if}>
         {/if}
@@ -90,14 +90,14 @@
                     {image
                         src=$imgAttribs.src
                         alt=$imgAttribs.alt|escape:'html'
-                        title=$slideTitle|escape:'html'
-                        data=['desc' => $slide.desc|escape:'html']}   
+                        title=$slide.title|escape:'html'
+                        data=['desc' => $slide.desc|escape:'html']}
                     <div style="margin-bottom: 18px;">
                         <a href="{$slide.link3}">{$slide.kat}</a><span> / </span><a href="{$slide.link2}">{$slide.kat2}</a>
                     </div>
                         <p class="heading-bilder">{$slide.title}</p>
                 </div>
-        {if $i % 2 != 0}
+        {if $i % 2 != 0 || $i == $slides|count - 1}
             </div>
         {/if}
     {/foreach}
