@@ -48,7 +48,7 @@
     </div>
 {else}
     {if $wrap}<div class="container">{/if}
-    <section class="sp-promo sp-promo--{$layout}{if $isSplit} sp-promo--split{/if} sp-promo--aspect-{$aspect} sp-promo--m-aspect-{$aspectM} sp-promo--overlay-{$overlay} sp-promo--align-{$align} sp-promo--text-{$textColor} sp-promo--r-{$rounded}{if $isSplit && $bg !== 'none'} sp-bg-{$bg}{/if}{if !$hasImage} sp-promo--no-image{/if}{if $fullBleed} sp-full-bleed{/if} {$portlet->rootClasses($instance)}"
+    <section class="sp-promo sp-promo--{$layout}{if $isSplit} sp-promo--split{/if} sp-promo--aspect-{$aspect} sp-promo--m-aspect-{$aspectM} sp-promo--overlay-{$overlay} sp-promo--align-{$align} sp-promo--text-{$textColor} sp-promo--r-{$rounded} sp-promo--bg-{$bg}{if $isSplit && $bg !== 'none'} sp-bg-{$bg}{/if}{if !$hasImage} sp-promo--no-image{/if}{if $fullBleed} sp-full-bleed{/if} {$portlet->rootClasses($instance)}"
              style="{$rootStyle}"
              {$instance->getAnimationDataAttributeString()}>
         {if $isSplit}<div class="sp-promo__grid">{/if}

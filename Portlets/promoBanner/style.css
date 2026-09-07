@@ -70,7 +70,7 @@
 .sp-promo--align-right  .sp-cd { justify-content: flex-end; }
 
 /* Layout: Bild und Text nebeneinander */
-.sp-promo--split { background: #f5f7fa; }
+.sp-promo--split.sp-promo--bg-none { background: #f5f7fa; }
 .sp-promo--split .sp-promo__grid { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; }
 .sp-promo--split .sp-promo__media { height: 100%; min-height: 280px; }
 .sp-promo--split-right .sp-promo__media { order: 2; }
