@@ -8,7 +8,7 @@
     <MinShopVersion>5.5.1</MinShopVersion>
     <MaxShopVersion>5.8.0</MaxShopVersion>
     <PluginID>startseite_plus</PluginID>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <CreateDate>2025-06-23</CreateDate>
     <Install>
         <Portlets>
@@ -43,7 +43,7 @@
                 <Active>1</Active>
             </Portlet>
             <Portlet>
-                <Title>Text &amp; Bild</Title>
+                <Title>Text und Bild</Title>
                 <Class>textImage</Class>
                 <Group>Startseite Plus</Group>
                 <Active>1</Active>

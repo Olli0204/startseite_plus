@@ -13,7 +13,7 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 | Kategorie-Kacheln | `pictureBox` | Bild-Grid (2–4 Spalten) mit Titel, Hauptlink und zwei Unterlinks (z. B. Männer / Frauen) |
 | Vorteile-Leiste | `uspBar` | Icons + Texte („Gratis Versand ab 100 €“), als Leiste, Karten oder kompakt |
 | Aktions-Banner | `promoBanner` | Bild mit Text, bis zu zwei Buttons und optionalem Countdown; blendet sich nach Ablauf aus |
-| Text & Bild | `textImage` | Zweispaltige Sektion (z. B. „Über uns“) mit Fließtext, Kennzahlen und Button |
+| Text und Bild | `textImage` | Zweispaltige Sektion (z. B. „Über uns“) mit Fließtext, Kennzahlen und Button |
 
 ### Hero-Slider
 - Seitenverhältnis getrennt für Desktop und Mobil (Bild wird per `object-fit: cover` zugeschnitten, Bildausschnitt je Slide wählbar) – ersetzt den alten „200 %-Breite“-Hack für Smartphones
@@ -34,7 +34,7 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Kicker, Überschrift (H1–H4), Rich-Text, zwei Buttons mit eigenem Stil
 - Countdown bis zu einem Endzeitpunkt; danach Banner ausblenden, Hinweistext zeigen oder ohne Countdown weiterzeigen
 
-### Text & Bild
+### Text und Bild
 - Bild links/rechts mit 40/50/60 % Breite; Bildstile: abgerundet, Schatten, versetzter Akzentrahmen, Kreis
 - Kicker, Überschrift (H1–H4), Rich-Text, Kennzahlen („4000+ Boards auf Lager“) nebeneinander oder in Kästchen, Button
 - Hintergrund: keiner, hellgrau, Akzent (hell), dunkel, Akzentfarbe
@@ -83,6 +83,7 @@ Bestehende Seiten laufen ohne Nacharbeit weiter:
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.0.1          | 5.5.1 – 5.8.0 |
 | 2.0.0          | 5.5.1 – 5.8.0 |
 | 1.1.0          | 5.5.1 – 5.7.0 |
 | 1.0.2          | 5.5.1 – 5.5.3 |
@@ -95,6 +96,9 @@ Bestehende Seiten laufen ohne Nacharbeit weiter:
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.0.1
+- Portlet-Titel „Text & Bild“ in „Text und Bild“ geändert: JTL erlaubt in Titeln nur `[\w/\-() ]` (Installer-Fehlercode 201)
 
 ### 2.0.0
 - Neu: Vorteile-Leiste, Aktions-Banner mit Countdown, Text & Bild mit Kennzahlen
