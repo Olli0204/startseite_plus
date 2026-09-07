@@ -35,7 +35,7 @@ class sliderPlus extends Portlet
         return $this->getFontAwesomeButtonHtml('fas fa-images');
     }
 
-    public function initInstance(PortletInstance $instance): void
+    public function initInstance(PortletInstance $instance, bool $isFrontend = true): void
     {
         // Version 1.x: "name" war die HTML-ID, "color" die Hover-Farbe
         $this->migrateLegacyProps($instance);

@@ -20,7 +20,7 @@ class headingPlus extends Portlet
         return $this->getFontAwesomeButtonHtml('fas fa-heading');
     }
 
-    public function initInstance(PortletInstance $instance): void
+    public function initInstance(PortletInstance $instance, bool $isFrontend = true): void
     {
         // Version 1.x: "name" war der Überschriften-Text, "color" die Hover-Farbe
         $this->migrateLegacyProps($instance, 'text');

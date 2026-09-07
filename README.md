@@ -83,7 +83,8 @@ Bestehende Seiten laufen ohne Nacharbeit weiter:
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
-| 2.0.1          | 5.5.1 – 5.8.0 |
+| 2.0.2          | 5.5.1 – 5.8.0 |
+| 2.0.1          | 5.5.1 – 5.7.3 |
 | 2.0.0          | 5.5.1 – 5.8.0 |
 | 1.1.0          | 5.5.1 – 5.7.0 |
 | 1.0.2          | 5.5.1 – 5.5.3 |
@@ -96,6 +97,9 @@ Bestehende Seiten laufen ohne Nacharbeit weiter:
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.0.2
+- Kompatibilität mit JTL-Shop 5.8.0: `initInstance()` bekam dort den zweiten Parameter `bool $isFrontend`; die Überschreibungen in Hero-Slider und Überschrift nutzen jetzt die vollständige Signatur (vorher Whitescreen/500 auf der Startseite)
 
 ### 2.0.1
 - Portlet-Titel „Text & Bild“ in „Text und Bild“ geändert: JTL erlaubt in Titeln nur `[\w/\-() ]` (Installer-Fehlercode 201)
