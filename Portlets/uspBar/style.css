@@ -1,0 +1,119 @@
+/* Startseite Plus – Vorteile-Leiste */
+.sp-usp { margin: 1.5rem 0; }
+.sp-usp--bg-light,
+.sp-usp--bg-tint,
+.sp-usp--bg-dark,
+.sp-usp--bg-accent { padding: 1.25rem 1.5rem; border-radius: .5rem; }
+
+.sp-usp__list {
+    display: grid;
+    grid-template-columns: repeat(var(--sp-cols, 4), minmax(0, 1fr));
+    gap: 1rem;
+}
+.sp-usp__item {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+a.sp-usp__item:hover,
+a.sp-usp__item:focus { color: inherit; text-decoration: none; }
+a.sp-usp__item:hover .sp-usp__title { color: var(--sp-accent, var(--primary, #FFA54F)); }
+.sp-usp--center .sp-usp__item { justify-content: center; }
+
+/* Icon */
+.sp-usp__icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    font-size: 1.2rem;
+    color: var(--sp-accent, var(--primary, #FFA54F));
+}
+.sp-usp--icon-circle .sp-usp__icon,
+.sp-usp--icon-square .sp-usp__icon {
+    background: #fff5ea;
+    background: color-mix(in srgb, var(--sp-accent, var(--primary, #FFA54F)) 14%, #fff);
+}
+.sp-usp--icon-circle .sp-usp__icon { border-radius: 50%; }
+.sp-usp--icon-square .sp-usp__icon { border-radius: .5rem; }
+.sp-usp--bg-dark .sp-usp--icon-circle .sp-usp__icon,
+.sp-usp--bg-dark.sp-usp--icon-circle .sp-usp__icon,
+.sp-usp--bg-dark.sp-usp--icon-square .sp-usp__icon { background: rgba(255, 255, 255, .1); }
+.sp-usp--bg-accent .sp-usp__icon { color: #fff; }
+.sp-usp--bg-accent.sp-usp--icon-circle .sp-usp__icon,
+.sp-usp--bg-accent.sp-usp--icon-square .sp-usp__icon { background: rgba(255, 255, 255, .2); }
+.sp-usp--isize-sm .sp-usp__icon { width: 2rem; height: 2rem; font-size: .95rem; }
+.sp-usp--isize-lg .sp-usp__icon { width: 3.4rem; height: 3.4rem; font-size: 1.6rem; }
+.sp-usp__icon img,
+.sp-usp__icon picture { display: block; max-width: 70%; max-height: 70%; object-fit: contain; }
+
+/* Text */
+.sp-usp__body { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+.sp-usp__title { font-weight: 700; line-height: 1.25; transition: color .2s; }
+.sp-usp__text { color: #6c757d; font-size: .85rem; line-height: 1.35; }
+.sp-usp--bg-dark .sp-usp__text,
+.sp-usp--bg-accent .sp-usp__text { color: rgba(255, 255, 255, .78); }
+.sp-usp--bg-accent a.sp-usp__item:hover .sp-usp__title { color: #fff; text-decoration: underline; }
+
+/* Trennlinien */
+.sp-usp--divider .sp-usp__item { position: relative; }
+.sp-usp--divider .sp-usp__item + .sp-usp__item::before {
+    content: "";
+    position: absolute;
+    left: -.5rem;
+    top: 15%;
+    width: 1px;
+    height: 70%;
+    background: rgba(0, 0, 0, .1);
+}
+.sp-usp--bg-dark.sp-usp--divider .sp-usp__item + .sp-usp__item::before,
+.sp-usp--bg-accent.sp-usp--divider .sp-usp__item + .sp-usp__item::before { background: rgba(255, 255, 255, .2); }
+
+/* Karten */
+.sp-usp--cards .sp-usp__item {
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 1.25rem 1rem;
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: .6rem;
+    background: #fff;
+    text-align: center;
+    transition: transform .25s, box-shadow .25s;
+}
+.sp-usp--cards .sp-usp__body { text-align: center; }
+.sp-usp--cards a.sp-usp__item:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(0, 0, 0, .1); }
+.sp-usp--cards .sp-usp__icon { width: 3.2rem; height: 3.2rem; font-size: 1.4rem; }
+.sp-usp--cards.sp-usp--bg-dark .sp-usp__item,
+.sp-usp--cards.sp-usp--bg-accent .sp-usp__item { background: rgba(255, 255, 255, .07); border-color: rgba(255, 255, 255, .14); }
+.sp-usp--cards.sp-usp--divider .sp-usp__item + .sp-usp__item::before { display: none; }
+
+/* Kompakt */
+.sp-usp--compact .sp-usp__item { align-items: flex-start; }
+.sp-usp--compact.sp-usp--center .sp-usp__item { justify-content: flex-start; }
+
+@media (max-width: 991.98px) {
+    .sp-usp__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sp-usp--divider .sp-usp__item:nth-child(odd)::before { display: none; }
+}
+@media (max-width: 575.98px) {
+    .sp-usp--strip .sp-usp__list {
+        display: flex;
+        gap: .75rem;
+        padding-bottom: .35rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .sp-usp--strip .sp-usp__list::-webkit-scrollbar { display: none; }
+    .sp-usp--strip .sp-usp__item { flex: 0 0 auto; max-width: 80%; scroll-snap-align: start; }
+    .sp-usp--strip .sp-usp__item + .sp-usp__item::before { display: none; }
+    .sp-usp--cards .sp-usp__list,
+    .sp-usp--compact .sp-usp__list { grid-template-columns: 1fr; }
+    .sp-usp--bg-light, .sp-usp--bg-tint, .sp-usp--bg-dark, .sp-usp--bg-accent { padding: 1rem; }
+}

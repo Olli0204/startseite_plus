@@ -1,105 +1,95 @@
-<style>
-    .big_bilder_box {
-        display: block;
-        padding-bottom: 20px;
-    }
+{* Startseite Plus – Kategorie-Kacheln *}
+{$tiles      = $portlet->getTiles($instance)}
+{$count      = $tiles|count}
+{$cols       = $portlet->getColumns($instance)}
+{$divisor    = $portlet->getImageDivisor($instance)}
+{$aspect     = $portlet->getKey($instance, 'aspect', '3-2')}
+{$gap        = $portlet->getKey($instance, 'gap', 'sm')}
+{$hover      = $portlet->getKey($instance, 'hover', 'zoom')}
+{$overlay    = $portlet->getKey($instance, 'overlay', 'gradient-bottom')}
+{$titlePos   = $portlet->getKey($instance, 'title-position', 'center')}
+{$titleSize  = $portlet->getKey($instance, 'title-size', 'md')}
+{$titleStyle = $portlet->getKey($instance, 'title-style', 'plain')}
+{$linksStyle = $portlet->getKey($instance, 'links-style', 'pills')}
+{$rounded    = $portlet->getKey($instance, 'rounded', 'sm')}
+{$widthMode  = $portlet->getKey($instance, 'width', 'container')}
+{$wrap       = !$inContainer && $widthMode === 'container'}
+{$fullBleed  = $inContainer && $widthMode === 'full'}
+{$rootStyle  = $portlet->rootStyle($instance, [
+    'accent'  => $portlet->getAccent($instance),
+    'cols-xs' => $cols.xs,
+    'cols-sm' => $cols.sm,
+    'cols'    => $cols.lg
+])}
 
-    .bilder_box {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        text-align: center;
-        margin-bottom: 0px;
-        margin-top: 0px;
-    }
-
-    .bilder_box div {
-        margin-left: 1px;
-        margin-right: 1px;
-    }
-
-    .bilder_box div img {
-        width: 100%;
-        height: auto;
-        margin-left: 1px;
-        margin-right: 1px;
-        border-style: solid;
-        border-width: 1px;
-        border-color: #808080;
-    }
-
-    .bilder_box div div {
-        position: relative;
-        width: 200px;
-        margin: -45px auto 0px auto;
-        font-size: 20px;
-        border-style: solid;
-        border-width: 1px;
-        border-color: transparent;
-        border-radius: 5px;
-        background-color: rgba(255, 255, 255, 0.75);
-    }
-
-    .bilder_box div a {
-        text-decoration: none;
-    }
-
-    .heading-bilder {
-        position: relative;
-        margin: -215px auto 150px auto;
-        font-size: 40px;
-        background-color: rgba(255, 255, 255, 0.6);
-        border-style: solid;
-        border-width: 1px;
-        border-color: transparent;
-        border-radius: 9px;
-        width: 300px;
-    }
-
-    @media only screen and (max-width: 1200px) {
-        .bilder_box div img {
-            margin-left: 0px;
-            margin-right: 0px;
-            width: 99%;
-        }
-        .bilder_box {
-            flex-wrap: wrap;
-        }
-        .bilder_box div {
-            margin-left: 0px;
-            margin-right: 0px;
-        }
-    }
-</style>
-{$slides = $instance->getProperty('slides')}
-{if $isPreview}
-    <div class="text-center" style="color: #5cbcf6; display: flex; flex-direction: column; justify-content: center; height: 64px;">
-        <div>
-            <i class="far fa-object-group"></i>
-            <span style="font-size: 12px; font-weight: bold; text-transform: uppercase;">Bilder Box</span>
-        </div>
+{if $count === 0}
+    <div class="sp-placeholder" style="{$instance->getStyleString()}">
+        <i class="fas fa-th-large"></i>
+        <span>Kategorie-Kacheln – bitte Kacheln hinzufügen</span>
     </div>
 {else}
-<div class="big_bilder_box">
-    {foreach $slides as $i => $slide}
-        {if $i % 2 == 0}
-            <div class="bilder_box" {if $isMobile} style="flex-wrap: wrap;" {/if}>
-        {/if}
-                <div>
-                    {$imgAttribs = $instance->getImageAttributes($slide.url, $slide.alt, $slide.title)}
-                    {image
-                        src=$imgAttribs.src
-                        alt=$imgAttribs.alt|escape:'html'
-                        title=$slide.title|escape:'html'
-                        data=['desc' => $slide.desc|escape:'html']}
-                    <div style="margin-bottom: 18px;">
-                        <a href="{$slide.link3}">{$slide.kat}</a><span> / </span><a href="{$slide.link2}">{$slide.kat2}</a>
+    {if $wrap}<div class="container">{/if}
+    <div class="sp-tiles sp-tiles--aspect-{$aspect} sp-tiles--gap-{$gap} sp-tiles--hover-{$hover} sp-tiles--overlay-{$overlay} sp-tiles--title-{$titlePos} sp-tiles--size-{$titleSize} sp-tiles--tstyle-{$titleStyle} sp-tiles--links-{$linksStyle} sp-tiles--r-{$rounded}{if $fullBleed} sp-full-bleed{/if} {$portlet->rootClasses($instance)}"
+         style="{$rootStyle}"
+         {$instance->getAnimationDataAttributeString()}>
+        {foreach $tiles as $tile}
+            {$main = $portlet->safeUrl($tile.link)}
+            {if $main === ''}{$main = $portlet->safeUrl($tile.link3)}{/if}
+            {if $main === ''}{$main = $portlet->safeUrl($tile.link2)}{/if}
+            {$link1       = $portlet->safeUrl($tile.link3)}
+            {$link2       = $portlet->safeUrl($tile.link2)}
+            {$mediaIsLink = $main !== '' && !$isPreview}
+            {$img         = $instance->getImageAttributes($tile.url, $tile.alt, $tile.title, $divisor)}
+            <div class="sp-tile">
+                {if $mediaIsLink}
+                    <a class="sp-tile__media" href="{$main|escape:'html'}"{if $tile.title !== ''} aria-label="{$tile.title|escape:'html'}"{/if}>
+                {else}
+                    <div class="sp-tile__media">
+                {/if}
+                    {image src=$img.src
+                           srcset=$img.srcset
+                           sizes=$img.srcsizes
+                           alt=$img.alt|escape:'html'
+                           class="sp-tile__img"
+                           width=$img.realWidth
+                           height=$img.realHeight
+                           lazy=true
+                           webp=true}
+                {if $mediaIsLink}
+                    </a>
+                {else}
                     </div>
-                        <p class="heading-bilder">{$slide.title}</p>
+                {/if}
+                <div class="sp-tile__overlay" aria-hidden="true"></div>
+                <div class="sp-tile__content">
+                    {if $tile.title !== '' || $tile.desc !== ''}
+                        <div class="sp-tile__head">
+                            {if $tile.title !== ''}
+                                <h3 class="sp-tile__title">
+                                    {if $mediaIsLink}<a href="{$main|escape:'html'}">{/if}{$tile.title|escape:'html'}{if $mediaIsLink}</a>{/if}
+                                </h3>
+                            {/if}
+                            {if $tile.desc !== ''}
+                                <p class="sp-tile__desc">{$tile.desc|escape:'html'}</p>
+                            {/if}
+                        </div>
+                    {/if}
+                    {if $tile.kat !== '' || $tile.kat2 !== ''}
+                        <div class="sp-tile__links">
+                            {if $tile.kat !== ''}
+                                <a class="sp-tile__link"{if $link1 !== '' && !$isPreview} href="{$link1|escape:'html'}"{/if}>{$tile.kat|escape:'html'}</a>
+                            {/if}
+                            {if $tile.kat !== '' && $tile.kat2 !== ''}
+                                <span class="sp-tile__sep" aria-hidden="true">/</span>
+                            {/if}
+                            {if $tile.kat2 !== ''}
+                                <a class="sp-tile__link"{if $link2 !== '' && !$isPreview} href="{$link2|escape:'html'}"{/if}>{$tile.kat2|escape:'html'}</a>
+                            {/if}
+                        </div>
+                    {/if}
                 </div>
-        {if $i % 2 != 0 || $i == $slides|count - 1}
             </div>
-        {/if}
-    {/foreach}
-</div>
+        {/foreach}
+    </div>
+    {if $wrap}</div>{/if}
 {/if}
