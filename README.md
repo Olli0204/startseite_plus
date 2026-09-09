@@ -40,7 +40,7 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Hintergrund: keiner, hellgrau, Akzent (hell), dunkel, Akzentfarbe
 
 ### Vorteile-Leiste
-- Font-Awesome-Icon (z. B. `fas fa-truck`) oder eigenes Bild, Titel, Text, optionaler Link je Eintrag
+- Font-Awesome-Icon oder eigenes Bild, Titel, Text, optionaler Link je Eintrag. NOVA enthält Font Awesome **5** Free: `fas fa-snowboarding`, `fas fa-skiing`, `fas fa-mountain`, `fas fa-truck` funktionieren, Version-6-Namen wie `fa-person-snowboarding` nicht
 - Layouts Leiste / Karten / Kompakt, Icon im Kreis/Quadrat/frei, Trennlinien, Hintergrund
 - Auf Smartphones wird die Leiste horizontal wischbar
 

@@ -103,7 +103,7 @@ class uspBar extends Portlet
                         'label'       => \__('Icon (Font-Awesome-Klasse)'),
                         'width'       => 40,
                         'placeholder' => 'z. B. fas fa-truck',
-                        'help'        => \__('Beispiele: fas fa-truck, fas fa-lock, fas fa-store, fas fa-undo, fas fa-headset, far fa-credit-card. Alternativ Bild auswählen.'),
+                        'help'        => \__('Font Awesome 5 Free (in NOVA enthalten) – Icons ab Version 6 wie „fa-person-snowboarding“ fehlen. Beispiele: fas fa-snowboarding, fas fa-skiing, fas fa-mountain, fas fa-truck, fas fa-lock, fas fa-store, fas fa-headset, far fa-credit-card. Alternativ Bild auswählen.'),
                     ],
                     ['name' => 'title', 'label' => \__('Titel'), 'width' => 60, 'placeholder' => 'z. B. Gratis Versand ab 100 €'],
                     ['name' => 'text', 'label' => \__('Text (optional)'), 'width' => 60, 'placeholder' => 'z. B. innerhalb Deutschlands'],
