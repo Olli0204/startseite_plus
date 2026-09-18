@@ -104,6 +104,7 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.1.2          | 5.5.1 – 5.8.0 |
 | 2.1.1          | 5.5.1 – 5.8.0 |
 | 2.1.0          | 5.5.1 – 5.8.0 |
 | 2.0.2          | 5.5.1 – 5.8.0 |
@@ -120,6 +121,9 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.1.2
+- Fix: Startseite mit Aktions-Banner lieferte HTTP 500. JTL rendert Templates im Legacy-Modus mit Smarty 4, das die Zuweisung `{$var = bedingung ? a : b}` nicht kennt. Zusätzlich: Countdown-Auswahlliste wird nur im Backend aus der Datenbank geladen, Datenbankfehler blenden den Countdown aus statt die Seite zu brechen, Include-Pfad des Snippets ohne `file:`-Präfix.
 
 ### 2.1.1
 - Fix: „Erstellen“ in der Countdown-Verwaltung führte zu einem White-Screen. Das Formular las Felder mit Unterstrich über magische Getter (`getLabelEn()`), die JTLs DataModel nicht auflöst, und die Auswahllisten fehlten, wenn der Standard-Controller selbst auf das Formular umschaltet.

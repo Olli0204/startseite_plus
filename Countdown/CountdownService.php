@@ -44,7 +44,13 @@ class CountdownService
      */
     public function all(): array
     {
-        return $this->db->getObjects('SELECT * FROM ' . self::TABLE . ' ORDER BY `until` DESC, id DESC');
+        try {
+            return $this->db->getObjects('SELECT * FROM ' . self::TABLE . ' ORDER BY `until` DESC, id DESC');
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
     }
 
     public function find(int $id): ?stdClass
@@ -52,8 +58,22 @@ class CountdownService
         if ($id <= 0) {
             return null;
         }
+        try {
+            return $this->db->select(self::TABLE, 'id', $id);
+        } catch (\Throwable $e) {
+            $this->logError($e);
 
-        return $this->db->select(self::TABLE, 'id', $id);
+            return null;
+        }
+    }
+
+    private function logError(\Throwable $e): void
+    {
+        try {
+            Shop::Container()->getLogService()->error('startseite_plus countdown: ' . $e->getMessage());
+        } catch (\Throwable) {
+            // kein Logger verfügbar
+        }
     }
 
     /**
@@ -82,9 +102,15 @@ class CountdownService
      */
     public function forProductPage(bool $hasSpecialPrice, string $lang = ''): array
     {
-        $rows  = $this->db->getObjects(
-            'SELECT * FROM ' . self::TABLE . " WHERE active = 1 AND product_page <> 'none' ORDER BY `until` ASC"
-        );
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT * FROM ' . self::TABLE . " WHERE active = 1 AND product_page <> 'none' ORDER BY `until` ASC"
+            );
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
         $views = [];
         foreach ($rows as $row) {
             if ($row->product_page === 'sale' && !$hasSpecialPrice) {

@@ -64,11 +64,32 @@ class promoBanner extends Portlet
     }
 
     /**
-     * Absoluter Pfad des gemeinsamen Countdown-Snippets (Portlets/Common/countdown.tpl).
+     * Auswahlliste der Countdown-Verwaltung. getPropertyDesc() läuft über getDefaultProps() bei jedem
+     * Frontend-Render; dort reicht der Platzhalter, die Datenbank wird nur im Backend befragt.
+     *
+     * @return array<string, string>
+     */
+    private function countdownOptions(): array
+    {
+        $empty = \__('– eigener Endzeitpunkt (unten) –');
+        try {
+            if (\JTL\Shop::isFrontend()) {
+                return ['' => $empty];
+            }
+
+            return CountdownService::create()->options($empty);
+        } catch (\Throwable) {
+            return ['' => $empty];
+        }
+    }
+
+    /**
+     * Absoluter Pfad des gemeinsamen Countdown-Snippets (Portlets/Common/countdown.tpl),
+     * ohne "file:"-Präfix – so wie JTL selbst Portlet-Templates per Pfad lädt.
      */
     public function getCountdownTemplate(): string
     {
-        return 'file:' . \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/countdown.tpl';
+        return \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/countdown.tpl';
     }
 
     /**
@@ -157,7 +178,7 @@ class promoBanner extends Portlet
                 [
                     'countdown-id'           => $this->propSelect(
                         \__('Countdown aus der Verwaltung'),
-                        CountdownService::create()->options(\__('– eigener Endzeitpunkt (unten) –')),
+                        $this->countdownOptions(),
                         '',
                         100,
                         \__('Countdowns werden im Plugin-Tab „Countdowns“ gepflegt (Endzeitpunkt, Beschriftung, Verhalten nach Ablauf). Die Felder unten gelten nur für einen eigenen Endzeitpunkt.')

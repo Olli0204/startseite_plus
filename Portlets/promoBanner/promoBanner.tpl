@@ -29,9 +29,11 @@
 {$btn2Url     = $portlet->safeUrl($instance->getProperty('btn2-url'))}
 {$btn2Style   = $portlet->getKey($instance, 'btn2-style', 'outline-light')}
 {$cd          = $portlet->getCountdown($instance)}
+{$cdTpl       = $portlet->getCountdownTemplate()}
 {$hasCd       = $cd !== null}
-{$cdExpired   = $hasCd && $cd.expired}
-{$cdMode      = $hasCd ? $cd.mode : 'hide'}
+{$cdExpired   = false}
+{$cdMode      = 'hide'}
+{if $hasCd}{$cdExpired = $cd.expired}{$cdMode = $cd.mode}{/if}
 {$showCd      = $hasCd && (!$cdExpired || $cdMode === 'text')}
 {$hideBanner  = $hasCd && $cdExpired && $cdMode === 'hide' && !$isPreview}
 {$hasContent  = $kicker !== '' || $title !== '' || $text !== '' || $btn1Label !== '' || $btn2Label !== '' || $showCd}
@@ -95,7 +97,7 @@
                     <div class="sp-promo__text">{$text}</div>
                 {/if}
                 {if $showCd}
-                    {include file=$portlet->getCountdownTemplate() cd=$cd dark=($textColor === 'dark')}
+                    {include file=$cdTpl cd=$cd dark=($textColor === 'dark')}
                 {/if}
                 {if $btn1Label !== '' || $btn2Label !== ''}
                     <div class="sp-promo__actions">
