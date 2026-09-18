@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <jtlshopplugin>
     <Name>Startseite Plus</Name>
-    <Description>Ansprechende OPC-Bausteine für die Startseite: Hero-Slider, Kategorie-Kacheln, Überschriften, Vorteils-Leiste, Aktions-Banner mit Countdown und Text-Bild-Sektion</Description>
+    <Description>Ansprechende OPC-Bausteine für die Startseite: Hero-Slider, Kategorie-Kacheln, Überschriften, Vorteils-Leiste, Aktions-Banner mit Countdown und Text-Bild-Sektion; zentrale Countdown-Verwaltung für Banner und Artikelseiten</Description>
     <Author>Oliver Kamps</Author>
     <URL>https://ollipolli.de</URL>
     <XMLVersion>102</XMLVersion>
     <MinShopVersion>5.5.1</MinShopVersion>
     <MaxShopVersion>5.8.0</MaxShopVersion>
     <PluginID>startseite_plus</PluginID>
-    <Version>2.0.2</Version>
+    <Version>2.1.0</Version>
     <CreateDate>2025-06-23</CreateDate>
     <Install>
+        <Adminmenu>
+            <Customlink sort="1">
+                <Name>Countdowns</Name>
+            </Customlink>
+        </Adminmenu>
         <Portlets>
             <Portlet>
                 <Title>Hero-Slider</Title>

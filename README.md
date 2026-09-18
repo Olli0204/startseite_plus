@@ -79,10 +79,32 @@ Bestehende Seiten laufen ohne Nacharbeit weiter:
 - Die alten Klassen (`.bilder_box`, `.head-banner-main`, `.button-slider-index`, `#nohover`) werden nicht mehr ausgegeben;
   die zugehörigen Regeln in `snowshop_template/themes/snowshop/sass/snowshop.scss` sind damit toter Code.
 
+## Countdown-Verwaltung (seit 2.1.0)
+
+Unter **Plugins → Startseite Plus → Countdowns** werden Countdowns zentral gepflegt (Tabelle `startseite_plus_countdown`):
+
+| Feld | Bedeutung |
+|---|---|
+| Name | interner Name, erscheint in der Auswahl des Aktions-Banners |
+| Endzeitpunkt | Shop-Zeitzone; die Serverzeit wird im Formular angezeigt |
+| Beschriftung DE/EN | Text vor den Ziffern; auf der Artikelseite die Überschrift der Box (EN leer = DE) |
+| Darstellung | Kästchen oder Textzeile |
+| Nach Ablauf | Ausblenden (blendet auch den Banner aus), Hinweistext anzeigen, ohne Countdown weiter anzeigen |
+| Hinweistext DE/EN | Text nach Ablauf bei „Hinweistext anzeigen“ |
+| Auf Artikeldetailseiten | Nein, nur bei aktivem Sonderpreis, immer |
+| Aktiv | inaktive Countdowns werden nirgends ausgegeben |
+
+Verwendung:
+- **Aktions-Banner**: Tab „Countdown“ → „Countdown aus der Verwaltung“ wählen. Beschriftung, Darstellung und Ablaufverhalten kommen dann aus der Verwaltung. Ohne Auswahl gilt weiterhin der eigene Endzeitpunkt des Portlets (Fallback für Banner aus 2.0.x).
+- **Artikeldetailseite**: freigegebene Countdowns erscheinen oberhalb der Variationen/Kaufbox (NOVA-Block `productdetails-details-include-variation`) als Box in der Akzentfarbe; „nur bei Sonderpreis“ prüft `Preise->Sonderpreis_aktiv`. Abgelaufene Countdowns erscheinen dort nur mit Hinweistext. Diese Anzeige ersetzt den Countdown aus `artikel_details_plus` (dort seit 0.3.0 entfernt).
+
+Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Zeitzone, Beschriftungen je Sprache), `Portlets/Common/countdown.tpl` ist das gemeinsame Snippet, `Portlets/Common/countdown.js` der Zähler (vom Portlet über `getExtraJsFiles()`, auf der Artikelseite per `<script defer>`). Admin: `ModelBackendController` auf Basis von `GenericModelController` mit `Models/Countdown.php`.
+
 ## Kompatibilität
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.1.0          | 5.5.1 – 5.8.0 |
 | 2.0.2          | 5.5.1 – 5.8.0 |
 | 2.0.1          | 5.5.1 – 5.7.3 |
 | 2.0.0          | 5.5.1 – 5.8.0 |
@@ -97,6 +119,12 @@ Bestehende Seiten laufen ohne Nacharbeit weiter:
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.1.0
+- Neu: Countdown-Verwaltung (Plugin-Tab „Countdowns“) mit mehreren Countdowns, Beschriftungen DE/EN, Ablaufverhalten und Freigabe für Artikeldetailseiten (immer oder nur bei Sonderpreis)
+- Aktions-Banner wählt Countdowns aus der Verwaltung; eigener Endzeitpunkt bleibt als Fallback
+- Countdown-Snippet und -Script liegen zentral in `Portlets/Common/` (kein Inline-Script mehr im Banner), Einheiten-Beschriftungen je Sprache
+- Neu: `Bootstrap.php` (Artikelseiten-Hook, Admin-Tab), Migration für `startseite_plus_countdown`
 
 ### 2.0.2
 - Kompatibilität mit JTL-Shop 5.8.0: `initInstance()` bekam dort den zweiten Parameter `bool $isFrontend`; die Überschreibungen in Hero-Slider und Überschrift nutzen jetzt die vollständige Signatur (vorher Whitescreen/500 auf der Startseite)
