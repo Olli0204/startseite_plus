@@ -27,6 +27,18 @@ class promoBanner extends Portlet
     }
 
     /**
+     * @inheritdoc
+     */
+    public function initInstance(PortletInstance $instance, bool $isFrontend = true): void
+    {
+        parent::initInstance($instance, $isFrontend);
+        // Banner aus 2.0.x: Checkbox "Countdown anzeigen" + eigener Endzeitpunkt -> Auswahl "Eigener Endzeitpunkt"
+        if ($this->getString($instance, 'countdown-id') === '' && $this->isTrue($instance, 'use-countdown')) {
+            $instance->setProperty('countdown-id', 'custom');
+        }
+    }
+
+    /**
      * Countdown-View (siehe CountdownService) oder null, wenn kein Countdown aktiv ist.
      * Vorrang hat der in der Verwaltung gewählte Countdown; sonst der eigene Endzeitpunkt des Portlets.
      *
@@ -34,14 +46,18 @@ class promoBanner extends Portlet
      */
     public function getCountdown(PortletInstance $instance): ?array
     {
-        if (!$this->isTrue($instance, 'use-countdown')) {
+        $selection = $this->getString($instance, 'countdown-id');
+        if ($selection === '' && $this->isTrue($instance, 'use-countdown')) {
+            $selection = 'custom'; // Banner aus 2.0.x: Checkbox "Countdown anzeigen" + eigener Endzeitpunkt
+        }
+        if ($selection === '' || $selection === 'none') {
             return null;
         }
-        $id = $this->getNum($instance, 'countdown-id', 0, 0);
-        if ($id > 0) {
-            $row = CountdownService::create()->find($id);
+        if ($selection !== 'custom') {
+            $service = CountdownService::create();
+            $row     = $service->find((int)$selection);
 
-            return $row !== null ? CountdownService::create()->toView($row) : null;
+            return $row !== null ? $service->toView($row) : null;
         }
         $until = $this->getString($instance, 'countdown-until');
         if ($until === '') {
@@ -64,23 +80,28 @@ class promoBanner extends Portlet
     }
 
     /**
-     * Auswahlliste der Countdown-Verwaltung. getPropertyDesc() läuft über getDefaultProps() bei jedem
-     * Frontend-Render; dort reicht der Platzhalter, die Datenbank wird nur im Backend befragt.
+     * Auswahlliste des Countdown-Tabs: kein Countdown, Countdowns aus der Verwaltung, eigener Endzeitpunkt.
+     * getPropertyDesc() läuft über getDefaultProps() bei jedem Render, daher pro Request nur eine Abfrage.
      *
      * @return array<string, string>
      */
     private function countdownOptions(): array
     {
-        $empty = \__('– eigener Endzeitpunkt (unten) –');
-        try {
-            if (\JTL\Shop::isFrontend()) {
-                return ['' => $empty];
-            }
-
-            return CountdownService::create()->options($empty);
-        } catch (\Throwable) {
-            return ['' => $empty];
+        static $options = null;
+        if ($options !== null) {
+            return $options;
         }
+        $options = ['' => \__('Kein Countdown')];
+        try {
+            $options += CountdownService::create()->options('');
+            unset($options['']);
+            $options = ['' => \__('Kein Countdown')] + $options;
+        } catch (\Throwable) {
+            // ohne Datenbank bleibt nur die Grundauswahl
+        }
+        $options['custom'] = \__('Eigener Endzeitpunkt (Felder unten)');
+
+        return $options;
     }
 
     /**
@@ -171,46 +192,39 @@ class promoBanner extends Portlet
             'btn2-label'    => $this->propText(\__('Button 2 – Text'), 34),
             'btn2-url'      => $this->propText(\__('Button 2 – Link'), 33),
             'btn2-style'    => $this->propButtonStyle(\__('Button 2 – Stil'), 'outline-light', 33),
-            'use-countdown' => $this->propCheckbox(
-                \__('Countdown anzeigen'),
+            'countdown-id'           => $this->propSelect(
+                \__('Countdown'),
+                $this->countdownOptions(),
+                '',
                 100,
-                \__('Zählt bis zum Endzeitpunkt herunter – ideal für zeitlich begrenzte Aktionen.'),
+                \__('Countdowns werden zentral im Plugin-Tab „Countdowns“ gepflegt (Endzeitpunkt, Beschriftung, Verhalten nach Ablauf) und stehen hier zur Auswahl. Die Felder darunter gelten nur für „Eigener Endzeitpunkt“.')
+            ),
+            'countdown-until'        => [
+                'type'  => InputType::DATETIME,
+                'label' => \__('Eigener Endzeitpunkt'),
+                'width' => 50,
+            ],
+            'countdown-label'        => $this->propText(\__('Beschriftung (eigener Endzeitpunkt)'), 50, 'Nur noch'),
+            'countdown-style'        => $this->propSelect(
+                \__('Darstellung (eigener Endzeitpunkt)'),
+                ['boxes' => \__('Kästchen'), 'inline' => \__('Textzeile')],
+                'boxes',
+                50
+            ),
+            'countdown-expired'      => $this->propSelect(
+                \__('Nach Ablauf (eigener Endzeitpunkt)'),
                 [
-                    'countdown-id'           => $this->propSelect(
-                        \__('Countdown aus der Verwaltung'),
-                        $this->countdownOptions(),
-                        '',
-                        100,
-                        \__('Countdowns werden im Plugin-Tab „Countdowns“ gepflegt (Endzeitpunkt, Beschriftung, Verhalten nach Ablauf). Die Felder unten gelten nur für einen eigenen Endzeitpunkt.')
-                    ),
-                    'countdown-until'        => [
-                        'type'  => InputType::DATETIME,
-                        'label' => \__('Eigener Endzeitpunkt (Fallback)'),
-                        'width' => 50,
-                    ],
-                    'countdown-label'        => $this->propText(\__('Beschriftung'), 50, 'Nur noch'),
-                    'countdown-style'        => $this->propSelect(
-                        \__('Darstellung'),
-                        ['boxes' => \__('Kästchen'), 'inline' => \__('Textzeile')],
-                        'boxes',
-                        50
-                    ),
-                    'countdown-expired'      => $this->propSelect(
-                        \__('Nach Ablauf'),
-                        [
-                            'hide' => \__('Banner ausblenden'),
-                            'text' => \__('Hinweistext statt Countdown anzeigen'),
-                            'keep' => \__('Banner ohne Countdown anzeigen'),
-                        ],
-                        'hide',
-                        50
-                    ),
-                    'countdown-expired-text' => $this->propText(
-                        \__('Hinweistext nach Ablauf'),
-                        100,
-                        'Die Aktion ist beendet.'
-                    ),
-                ]
+                    'hide' => \__('Banner ausblenden'),
+                    'text' => \__('Hinweistext statt Countdown anzeigen'),
+                    'keep' => \__('Banner ohne Countdown anzeigen'),
+                ],
+                'hide',
+                50
+            ),
+            'countdown-expired-text' => $this->propText(
+                \__('Hinweistext nach Ablauf (eigener Endzeitpunkt)'),
+                100,
+                'Die Aktion ist beendet.'
             ),
         ];
     }
@@ -222,7 +236,7 @@ class promoBanner extends Portlet
     {
         return [
             \__('Buttons')   => ['btn1-label', 'btn1-url', 'btn1-style', 'btn2-label', 'btn2-url', 'btn2-style'],
-            \__('Countdown') => ['use-countdown'],
+            \__('Countdown') => ['countdown-id', 'countdown-until', 'countdown-label', 'countdown-style', 'countdown-expired', 'countdown-expired-text'],
             \__('Styles')    => 'styles',
             \__('Animation') => 'animations',
         ];
