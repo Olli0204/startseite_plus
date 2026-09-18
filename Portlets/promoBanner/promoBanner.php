@@ -7,11 +7,14 @@ namespace Plugin\startseite_plus\Portlets\promoBanner;
 use JTL\OPC\InputType;
 use JTL\OPC\Portlet;
 use JTL\OPC\PortletInstance;
+use Plugin\startseite_plus\Countdown\CountdownService;
 use Plugin\startseite_plus\Portlets\Common\PortletHelper;
 
 /**
  * Aktions-Banner: Bild mit Kicker, Überschrift, Text, bis zu zwei Buttons und optionalem Countdown
  * (z. B. "Boardsale endet in …"). Layouts: Text auf Bild oder Bild/Text nebeneinander.
+ * Der Countdown kommt aus der zentralen Countdown-Verwaltung (Plugin-Tab "Countdowns");
+ * ein eigener Endzeitpunkt im Portlet bleibt als Fallback für ältere Banner möglich.
  * Nach Ablauf des Countdowns kann der Banner automatisch ausgeblendet werden.
  */
 class promoBanner extends Portlet
@@ -24,37 +27,56 @@ class promoBanner extends Portlet
     }
 
     /**
-     * Unix-Timestamp des Countdown-Endes oder 0, wenn kein Countdown aktiv ist.
+     * Countdown-View (siehe CountdownService) oder null, wenn kein Countdown aktiv ist.
+     * Vorrang hat der in der Verwaltung gewählte Countdown; sonst der eigene Endzeitpunkt des Portlets.
+     *
+     * @return array<string, mixed>|null
      */
-    public function getCountdownTimestamp(PortletInstance $instance): int
+    public function getCountdown(PortletInstance $instance): ?array
     {
         if (!$this->isTrue($instance, 'use-countdown')) {
-            return 0;
+            return null;
+        }
+        $id = $this->getNum($instance, 'countdown-id', 0, 0);
+        if ($id > 0) {
+            $row = CountdownService::create()->find($id);
+
+            return $row !== null ? CountdownService::create()->toView($row) : null;
         }
         $until = $this->getString($instance, 'countdown-until');
         if ($until === '') {
-            return 0;
+            return null;
         }
         $timestamp = \strtotime($until);
+        if ($timestamp === false || $timestamp <= 0) {
+            return null;
+        }
 
-        return $timestamp === false ? 0 : $timestamp;
-    }
-
-    public function isCountdownExpired(PortletInstance $instance): bool
-    {
-        $timestamp = $this->getCountdownTimestamp($instance);
-
-        return $timestamp > 0 && $timestamp <= \time();
+        return CountdownService::buildView(
+            0,
+            '',
+            $timestamp,
+            $this->getString($instance, 'countdown-label'),
+            $this->getKey($instance, 'countdown-style', 'boxes'),
+            $this->getKey($instance, 'countdown-expired', 'hide'),
+            $this->getString($instance, 'countdown-expired-text')
+        );
     }
 
     /**
-     * Endzeitpunkt als ISO 8601 (inkl. Zeitzone) für das JavaScript.
+     * Absoluter Pfad des gemeinsamen Countdown-Snippets (Portlets/Common/countdown.tpl).
      */
-    public function getCountdownIso(PortletInstance $instance): string
+    public function getCountdownTemplate(): string
     {
-        $timestamp = $this->getCountdownTimestamp($instance);
+        return 'file:' . \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/countdown.tpl';
+    }
 
-        return $timestamp > 0 ? \date('c', $timestamp) : '';
+    /**
+     * @return string[]
+     */
+    public function getExtraJsFiles(): array
+    {
+        return [$this->getCommonUrl() . 'countdown.js?v=' . \rawurlencode($this->getPluginVersion())];
     }
 
     /**
@@ -133,9 +155,16 @@ class promoBanner extends Portlet
                 100,
                 \__('Zählt bis zum Endzeitpunkt herunter – ideal für zeitlich begrenzte Aktionen.'),
                 [
+                    'countdown-id'           => $this->propSelect(
+                        \__('Countdown aus der Verwaltung'),
+                        CountdownService::create()->options(\__('– eigener Endzeitpunkt (unten) –')),
+                        '',
+                        100,
+                        \__('Countdowns werden im Plugin-Tab „Countdowns“ gepflegt (Endzeitpunkt, Beschriftung, Verhalten nach Ablauf). Die Felder unten gelten nur für einen eigenen Endzeitpunkt.')
+                    ),
                     'countdown-until'        => [
                         'type'  => InputType::DATETIME,
-                        'label' => \__('Endzeitpunkt'),
+                        'label' => \__('Eigener Endzeitpunkt (Fallback)'),
                         'width' => 50,
                     ],
                     'countdown-label'        => $this->propText(\__('Beschriftung'), 50, 'Nur noch'),

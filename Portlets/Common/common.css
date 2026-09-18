@@ -163,3 +163,20 @@
 .sp-cd--inline .sp-cd__num { font-size: 1.1rem; }
 .sp-cd__expired { font-weight: 600; }
 .sp-cd [hidden] { display: none !important; }
+
+/* Countdown: Label als Überschrift (Artikeldetailseite) */
+.sp-cd--stacked { flex-direction: column; align-items: center; gap: .4rem; margin: 0; }
+.sp-cd__label--heading { font-size: 1.1rem; }
+.sp-cd--stacked .sp-cd__units { justify-content: center; }
+
+/* Countdown-Box auf der Artikeldetailseite */
+.sp-cd-product {
+    margin: .75rem 0 1.25rem;
+    padding: .9rem 1rem;
+    border: 2px solid var(--sp-accent, var(--primary, #FFA54F));
+    border-radius: .4rem;
+    background: color-mix(in srgb, var(--sp-accent, var(--primary, #FFA54F)) 18%, #fff);
+    text-align: center;
+}
+.sp-cd-product[hidden] { display: none !important; }
+.sp-cd-product .sp-cd__unit { background: rgba(0, 0, 0, .06); }
