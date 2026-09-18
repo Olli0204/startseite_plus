@@ -17,7 +17,7 @@
 <div id="detail-wrapper">
     <form id="model-detail" name="model_detail" method="post" action="{$action}">
         {$jtl_token}
-        <input type="hidden" name="id" value="{$item->getId()|intval}">
+        <input type="hidden" name="id" value="{$item->id|intval}">
         <div class="card">
             <div class="card-header">
                 <div class="subheading1">Countdown</div>
@@ -28,14 +28,14 @@
                     <label class="col col-sm-4 col-form-label text-sm-right" for="name">Name (intern):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="name" name="name" maxlength="100" required
-                               value="{$item->getName()|default:''|escape:'html'}" placeholder="z. B. Black Weekend 2026">
+                               value="{$item->name|default:''|escape:'html'}" placeholder="z. B. Black Weekend 2026">
                     </div>
                 </div>
                 <div class="form-group form-row align-items-center">
                     <label class="col col-sm-4 col-form-label text-sm-right" for="until">Endzeitpunkt:</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="datetime-local" class="form-control" id="until" name="until" required step="60"
-                               value="{$untilInput|escape:'html'}">
+                               value="{$item->getUntilInput()|escape:'html'}">
                         <small class="text-muted">Shop-Zeitzone, Serverzeit jetzt: {$now}</small>
                     </div>
                 </div>
@@ -44,7 +44,7 @@
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <div class="custom-control custom-checkbox">
                             <input class="custom-control-input" type="checkbox" id="active" name="active" value="1"
-                                   {if $item->getId() === 0 || (int)$item->getActive() === 1}checked{/if}>
+                                   {if ($item->id|intval) === 0 || ($item->active|intval) === 1}checked{/if}>
                             <label class="custom-control-label" for="active"></label>
                         </div>
                     </div>
@@ -55,7 +55,7 @@
                     <label class="col col-sm-4 col-form-label text-sm-right" for="label">Beschriftung (DE):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="label" name="label" maxlength="150"
-                               value="{$item->getLabel()|default:''|escape:'html'}" placeholder="z. B. Nur noch">
+                               value="{$item->label|default:''|escape:'html'}" placeholder="z. B. Nur noch">
                         <small class="text-muted">Text vor den Ziffern; auf der Artikelseite die Überschrift der Box.</small>
                     </div>
                 </div>
@@ -63,15 +63,15 @@
                     <label class="col col-sm-4 col-form-label text-sm-right" for="label_en">Beschriftung (EN):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="label_en" name="label_en" maxlength="150"
-                               value="{$item->getLabelEn()|default:''|escape:'html'}" placeholder="optional, sonst DE">
+                               value="{$item->label_en|default:''|escape:'html'}" placeholder="optional, sonst DE">
                     </div>
                 </div>
                 <div class="form-group form-row align-items-center">
                     <label class="col col-sm-4 col-form-label text-sm-right" for="style">Darstellung:</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <select class="custom-select" id="style" name="style">
-                            {foreach $styles as $k => $v}
-                                <option value="{$k}"{if $item->getStyle() === $k} selected{/if}>{$v}</option>
+                            {foreach $styles|default:[] as $k => $v}
+                                <option value="{$k}"{if $item->style === $k} selected{/if}>{$v}</option>
                             {/foreach}
                         </select>
                     </div>
@@ -82,8 +82,8 @@
                     <label class="col col-sm-4 col-form-label text-sm-right" for="expired_mode">Nach Ablauf:</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <select class="custom-select" id="expired_mode" name="expired_mode">
-                            {foreach $modes as $k => $v}
-                                <option value="{$k}"{if $item->getExpiredMode() === $k} selected{/if}>{$v}</option>
+                            {foreach $modes|default:[] as $k => $v}
+                                <option value="{$k}"{if $item->expired_mode === $k} selected{/if}>{$v}</option>
                             {/foreach}
                         </select>
                         <small class="text-muted">„Ausblenden“ blendet auch den Aktions-Banner aus, der diesen Countdown nutzt.</small>
@@ -93,14 +93,14 @@
                     <label class="col col-sm-4 col-form-label text-sm-right" for="expired_text">Hinweistext nach Ablauf (DE):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="expired_text" name="expired_text" maxlength="255"
-                               value="{$item->getExpiredText()|default:''|escape:'html'}" placeholder="z. B. Die Aktion ist beendet.">
+                               value="{$item->expired_text|default:''|escape:'html'}" placeholder="z. B. Die Aktion ist beendet.">
                     </div>
                 </div>
                 <div class="form-group form-row align-items-center">
                     <label class="col col-sm-4 col-form-label text-sm-right" for="expired_text_en">Hinweistext nach Ablauf (EN):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="expired_text_en" name="expired_text_en" maxlength="255"
-                               value="{$item->getExpiredTextEn()|default:''|escape:'html'}" placeholder="optional, sonst DE">
+                               value="{$item->expired_text_en|default:''|escape:'html'}" placeholder="optional, sonst DE">
                     </div>
                 </div>
 
@@ -109,8 +109,8 @@
                     <label class="col col-sm-4 col-form-label text-sm-right" for="product_page">Auf Artikeldetailseiten anzeigen:</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <select class="custom-select" id="product_page" name="product_page">
-                            {foreach $productPages as $k => $v}
-                                <option value="{$k}"{if $item->getProductPage() === $k} selected{/if}>{$v}</option>
+                            {foreach $productPages|default:[] as $k => $v}
+                                <option value="{$k}"{if $item->product_page === $k} selected{/if}>{$v}</option>
                             {/foreach}
                         </select>
                         <small class="text-muted">Erscheint oberhalb der Variationen/Kaufbox; „Nur bei aktivem Sonderpreis“ zeigt den Countdown ausschließlich bei reduzierten Artikeln.</small>

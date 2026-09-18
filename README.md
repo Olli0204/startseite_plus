@@ -104,6 +104,7 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.1.1          | 5.5.1 – 5.8.0 |
 | 2.1.0          | 5.5.1 – 5.8.0 |
 | 2.0.2          | 5.5.1 – 5.8.0 |
 | 2.0.1          | 5.5.1 – 5.7.3 |
@@ -119,6 +120,9 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.1.1
+- Fix: „Erstellen“ in der Countdown-Verwaltung führte zu einem White-Screen. Das Formular las Felder mit Unterstrich über magische Getter (`getLabelEn()`), die JTLs DataModel nicht auflöst, und die Auswahllisten fehlten, wenn der Standard-Controller selbst auf das Formular umschaltet.
 
 ### 2.1.0
 - Neu: Countdown-Verwaltung (Plugin-Tab „Countdowns“) mit mehreren Countdowns, Beschriftungen DE/EN, Ablaufverhalten und Freigabe für Artikeldetailseiten (immer oder nur bei Sonderpreis)

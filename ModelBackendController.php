@@ -68,16 +68,18 @@ class ModelBackendController extends GenericModelController
             $tab = 'detail';
         }
 
+        // handle() schaltet bei "Erstellen" (model-create) und nach "Speichern und weiter" selbst auf das
+        // Detailformular um und weist $item zu; die Auswahllisten müssen deshalb immer bereitstehen.
+        $smarty->assign('styles', ['boxes' => \__('Kästchen'), 'inline' => \__('Textzeile')])
+            ->assign('modes', ['hide' => \__('Ausblenden'), 'text' => \__('Hinweistext anzeigen'), 'keep' => \__('Ohne Countdown weiter anzeigen')])
+            ->assign('productPages', ['none' => \__('Nein'), 'sale' => \__('Nur bei aktivem Sonderpreis'), 'all' => \__('Immer')]);
+
         if ($tab === 'overview') {
             $smarty->assign('models', Countdown::loadAll($this->getDB(), [], []));
         } else {
             $itemId = Request::getInt('id') ?: (int)($_SESSION['modelid'] ?? 0);
             $item   = $itemId > 0 ? Countdown::loadByAttributes(['id' => $itemId], $this->getDB()) : new Countdown($this->getDB());
-            $smarty->assign('item', $item)
-                ->assign('untilInput', $this->toInputValue((string)($item->until ?? '')))
-                ->assign('styles', ['boxes' => \__('Kästchen'), 'inline' => \__('Textzeile')])
-                ->assign('modes', ['hide' => \__('Ausblenden'), 'text' => \__('Hinweistext anzeigen'), 'keep' => \__('Ohne Countdown weiter anzeigen')])
-                ->assign('productPages', ['none' => \__('Nein'), 'sale' => \__('Nur bei aktivem Sonderpreis'), 'all' => \__('Immer')]);
+            $smarty->assign('item', $item);
         }
 
         $smarty->assign('route', $this->route)
@@ -88,15 +90,5 @@ class ModelBackendController extends GenericModelController
             ->assign('now', \date('Y-m-d H:i:s'));
 
         return $this->handle(__DIR__ . '/adminmenu/templates/countdowns.tpl');
-    }
-
-    /**
-     * "Y-m-d H:i:s" -> Wert für <input type="datetime-local">
-     */
-    private function toInputValue(string $dbValue): string
-    {
-        $ts = $dbValue !== '' ? \strtotime($dbValue) : false;
-
-        return $ts === false ? '' : \date('Y-m-d\TH:i', $ts);
     }
 }

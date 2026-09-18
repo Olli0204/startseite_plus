@@ -26,12 +26,7 @@ use JTL\Plugin\Admin\InputType;
  * @method   string getName()
  * @method   string getUntil()
  * @method   string getLabel()
- * @method   string getLabelEn()
  * @method   string getStyle()
- * @method   string getExpiredMode()
- * @method   string getExpiredText()
- * @method   string getExpiredTextEn()
- * @method   string getProductPage()
  * @method   int    getActive()
  */
 final class Countdown extends DataModel
@@ -39,6 +34,18 @@ final class Countdown extends DataModel
     public function getTableName(): string
     {
         return 'startseite_plus_countdown';
+    }
+
+    /**
+     * Endzeitpunkt als Wert für <input type="datetime-local"> (leer bei neuem Datensatz).
+     * Hinweis: Felder mit Unterstrich (label_en, expired_mode, …) sind im Template über
+     * $item->label_en zu lesen; die magischen Getter getLabelEn() kennt DataModel nicht.
+     */
+    public function getUntilInput(): string
+    {
+        $ts = \strtotime((string)($this->until ?? ''));
+
+        return $ts === false || $ts <= 0 ? '' : \date('Y-m-d\TH:i', $ts);
     }
 
     public function setKeyName($keyName): void
