@@ -95,7 +95,7 @@ Unter **Plugins → Startseite Plus → Countdowns** werden Countdowns zentral g
 | Aktiv | inaktive Countdowns werden nirgends ausgegeben |
 
 Verwendung:
-- **Aktions-Banner**: Tab „Countdown“ → „Countdown aus der Verwaltung“ wählen. Beschriftung, Darstellung und Ablaufverhalten kommen dann aus der Verwaltung. Ohne Auswahl gilt weiterhin der eigene Endzeitpunkt des Portlets (Fallback für Banner aus 2.0.x).
+- **Aktions-Banner**: Tab „Countdown“ → Dropdown „Countdown“: *Kein Countdown*, ein Countdown aus der Verwaltung oder *Eigener Endzeitpunkt*. Bei einem Countdown aus der Verwaltung kommen Beschriftung, Darstellung und Ablaufverhalten von dort; die Felder darunter gelten nur für den eigenen Endzeitpunkt. Banner aus 2.0.x mit angehaktem „Countdown anzeigen“ werden beim Laden automatisch auf „Eigener Endzeitpunkt“ gesetzt.
 - **Artikeldetailseite**: freigegebene Countdowns erscheinen oberhalb der Variationen/Kaufbox (NOVA-Block `productdetails-details-include-variation`) als Box in der Akzentfarbe; „nur bei Sonderpreis“ prüft `Preise->Sonderpreis_aktiv`. Abgelaufene Countdowns erscheinen dort nur mit Hinweistext. Diese Anzeige ersetzt den Countdown aus `artikel_details_plus` (dort seit 0.3.0 entfernt).
 
 Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Zeitzone, Beschriftungen je Sprache), `Portlets/Common/countdown.tpl` ist das gemeinsame Snippet, `Portlets/Common/countdown.js` der Zähler (vom Portlet über `getExtraJsFiles()`, auf der Artikelseite per `<script defer>`). Admin: `ModelBackendController` auf Basis von `GenericModelController` mit `Models/Countdown.php`.
@@ -104,6 +104,7 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.2.0          | 5.5.1 – 5.8.0 |
 | 2.1.2          | 5.5.1 – 5.8.0 |
 | 2.1.1          | 5.5.1 – 5.8.0 |
 | 2.1.0          | 5.5.1 – 5.8.0 |
@@ -121,6 +122,10 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.2.0
+- Aktions-Banner: Countdown-Auswahl ist jetzt ein Dropdown direkt im Tab „Countdown“ (Kein Countdown / Countdowns aus der Verwaltung / Eigener Endzeitpunkt) statt einer Checkbox mit Unterfeldern; die Liste wird in jedem Kontext aus der Datenbank geladen (in 2.1.2 nur im Backend, wodurch der OPC-Editor keine Countdowns anbot)
+- Banner aus 2.0.x werden beim Laden automatisch auf „Eigener Endzeitpunkt“ migriert
 
 ### 2.1.2
 - Fix: Startseite mit Aktions-Banner lieferte HTTP 500. JTL rendert Templates im Legacy-Modus mit Smarty 4, das die Zuweisung `{$var = bedingung ? a : b}` nicht kennt. Zusätzlich: Countdown-Auswahlliste wird nur im Backend aus der Datenbank geladen, Datenbankfehler blenden den Countdown aus statt die Seite zu brechen, Include-Pfad des Snippets ohne `file:`-Präfix.
