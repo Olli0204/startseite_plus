@@ -110,6 +110,46 @@ class sliderPlus extends Portlet
     }
 
     /**
+     * Seitenverhältnis des ersten Bild-Slides als CSS-Wert ("1920 / 480") – Slides ohne Bild und Slider mit Deal-Slide
+     * übernehmen es, damit alle Slides gleich hoch sind. Leer, wenn es kein Bild oder keine Maße gibt.
+     *
+     * @param array<int, array<string, mixed>> $slides
+     */
+    public function getHeroRatio(PortletInstance $instance, array $slides): string
+    {
+        foreach ($slides as $slide) {
+            if (($slide['url'] ?? '') === '') {
+                continue;
+            }
+            try {
+                $img = $instance->getImageAttributes((string)$slide['url'], '', '');
+            } catch (\Throwable) {
+                return '';
+            }
+            $width  = (int)($img['realWidth'] ?? 0);
+            $height = (int)($img['realHeight'] ?? 0);
+
+            return $width > 0 && $height > 0 ? $width . ' / ' . $height : '';
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $slides
+     */
+    public function hasDealSlide(array $slides): bool
+    {
+        foreach ($slides as $slide) {
+            if (($slide['dealView'] ?? null) !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @return string[]
      */
     protected function getSharedCssFiles(): array
