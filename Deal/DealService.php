@@ -23,6 +23,7 @@ class DealService
 {
     public const IO_FUNCTION           = 'startseitePlusDeal';
     public const ADMIN_SEARCH_FUNCTION = 'startseitePlusProductSearch';
+    public const ADMIN_COUPON_FUNCTION = 'startseitePlusCouponSearch';
     public const MAX_PRODUCTS          = 4;
 
     public function __construct(private readonly DbInterface $db)
@@ -227,6 +228,75 @@ class DealService
             'variations' => (int)$row->nIstVater === 1,
             'thumb'      => $this->thumbUrl($row),
         ], $rows);
+    }
+
+    /**
+     * Kupon-Suche für den Kupon-Picker im OPC-Editor (Admin-IO): Suchtext in Name oder Code, leer = die neuesten
+     * Kupons; mit $exact = true genau ein Code (Anzeige des gespeicherten Kupons). Nur Standardkupons mit Code.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchCoupons(mixed $query, mixed $exact = false): array
+    {
+        $term   = \trim(\is_scalar($query) ? (string)$query : '');
+        $select = 'SELECT kKupon, cName, cCode, fWert, cWertTyp, dGueltigAb, dGueltigBis, cAktiv,
+                          nVerwendungen, nVerwendungenBisher, cArtikel
+                     FROM tkupon
+                    WHERE cKuponTyp = :type AND cCode != \'\'';
+        try {
+            if ($exact === true || $exact === 'true') {
+                if ($term === '') {
+                    return [];
+                }
+                $rows = $this->db->getObjects($select . ' AND cCode = :code LIMIT 1', [
+                    'type' => Kupon::TYPE_STANDARD,
+                    'code' => $term,
+                ]);
+            } elseif ($term === '') {
+                $rows = $this->db->getObjects($select . ' ORDER BY kKupon DESC LIMIT 15', ['type' => Kupon::TYPE_STANDARD]);
+            } else {
+                $like = '%' . \addcslashes($term, '%_\\') . '%';
+                $rows = $this->db->getObjects(
+                    $select . ' AND (cName LIKE :q OR cCode LIKE :q2)
+                              ORDER BY (cCode = :exact) DESC, kKupon DESC
+                              LIMIT 25',
+                    ['type' => Kupon::TYPE_STANDARD, 'q' => $like, 'q2' => $like, 'exact' => $term]
+                );
+            }
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+
+        return \array_map(static function (object $row): array {
+            $value = (float)$row->fWert;
+            $until = self::timestamp($row->dGueltigBis);
+            $from  = self::timestamp($row->dGueltigAb);
+            $state = 'active';
+            if ($row->cAktiv !== 'Y') {
+                $state = 'inactive';
+            } elseif ($until !== null && $until < \time()) {
+                $state = 'expired';
+            } elseif ($from !== null && $from > \time()) {
+                $state = 'upcoming';
+            } elseif ((int)$row->nVerwendungen > 0 && (int)$row->nVerwendungen <= (int)$row->nVerwendungenBisher) {
+                $state = 'used';
+            }
+            $articles = \array_filter(\array_map('trim', \explode(';', (string)$row->cArtikel)));
+
+            return [
+                'id'       => (int)$row->kKupon,
+                'code'     => (string)$row->cCode,
+                'name'     => (string)$row->cName,
+                'value'    => $row->cWertTyp === 'prozent'
+                    ? self::formatNumber($value) . ' %'
+                    : \number_format($value, \fmod($value, 1.0) === 0.0 ? 0 : 2, ',', '.') . ' €',
+                'until'    => $until !== null ? \date('d.m.Y', $until) : '',
+                'state'    => $state,
+                'articles' => \count($articles),
+            ];
+        }, $rows);
     }
 
     /**

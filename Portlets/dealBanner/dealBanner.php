@@ -175,13 +175,13 @@ class dealBanner extends Portlet
     public function getPropertyDesc(): array
     {
         return [
-            'coupon-code'     => $this->propText(
-                \__('Kupon-Code'),
-                50,
-                '',
-                \__('Code eines Standardkupons aus JTL (fester Betrag oder Prozent). Rabatt, Gültigkeit und Artikel werden daraus gelesen. Ist der Kupon inaktiv, abgelaufen oder aufgebraucht, blendet sich der Banner im Shop aus.'),
-                'z. B. ROXYDUO'
-            ),
+            'coupon-code'     => [
+                'type'    => 'startseite_plus.couponpicker',
+                'label'   => \__('Kupon'),
+                'default' => '',
+                'width'   => 100,
+                'desc'    => \__('Standardkupon aus JTL auswählen (fester Betrag oder Prozent). Rabatt, Gültigkeit und Artikel werden daraus gelesen. Ist der Kupon inaktiv, abgelaufen oder aufgebraucht, blendet sich der Banner im Shop aus.'),
+            ],
             'product-ids'     => [
                 'type'      => 'startseite_plus.productpicker',
                 'label'     => \__('Artikel (optional)'),

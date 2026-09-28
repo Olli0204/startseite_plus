@@ -49,6 +49,13 @@ class Bootstrap extends Bootstrapper
                     static fn(mixed $query = ''): array => DealService::create()->searchProducts($query)
                 );
             }
+            if (\is_object($io) && !$io->exists(DealService::ADMIN_COUPON_FUNCTION)) {
+                $io->register(
+                    DealService::ADMIN_COUPON_FUNCTION,
+                    static fn(mixed $query = '', mixed $exact = false): array
+                        => DealService::create()->searchCoupons($query, $exact)
+                );
+            }
         });
     }
 
