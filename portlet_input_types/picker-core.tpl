@@ -3,13 +3,14 @@
     Eingebunden von couponpicker.tpl, productpicker.tpl und repeater.tpl (Feldtypen "coupon" / "products").
 
     Markup eines Pickers:
-      <div class="sp-picker" data-sp-picker="coupon|products" data-max="4" data-empty="…" data-placeholder="…">
+      <div class="sp-picker" data-sp-picker="coupon|products|category" data-max="4" data-empty="…" data-placeholder="…">
           <input type="hidden" class="sp-picker-value" name="…" value="…">
           <div class="sp-picker-ui"></div>
       </div>
     window.spPicker.init(root, force) baut die Oberfläche in .sp-picker-ui auf (force = neu aufbauen, z. B. nach
-    dem Kopieren eines Listeneintrags). Wert: Kupon-Code bzw. Artikel-IDs "101;102".
-    Suche über die Admin-IO-Funktionen startseitePlusCouponSearch / startseitePlusProductSearch.
+    dem Kopieren eines Listeneintrags). Wert: Kupon-Code, Artikel-IDs "101;102" bzw. Kategorie-ID.
+    Suche über die Admin-IO-Funktionen startseitePlusCouponSearch / startseitePlusProductSearch /
+    startseitePlusCategorySearch.
 *}
 <style>
     .sp-pp-selected, .sp-pp-results { list-style: none; margin: 0; padding: 0; }
@@ -22,6 +23,7 @@
     .sp-pp-thumb { flex: 0 0 36px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 3px; background: #f5f7fa; color: #b0b6bd; overflow: hidden; }
     .sp-pp-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .sp-picker--coupon .sp-pp-thumb { color: #e8912d; background: #fff4e6; font-size: 15px; }
+    .sp-picker--category .sp-pp-thumb { color: #1b5d8f; background: #e7f3fe; font-size: 15px; }
     .sp-pp-text { flex: 1 1 auto; min-width: 0; line-height: 1.25; text-align: left; }
     .sp-pp-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
     .sp-pp-meta { font-size: 11px; color: #6c757d; }
@@ -137,14 +139,35 @@
             return li;
         };
 
+        var categoryItem = function (cat) {
+            var li = el('li', 'sp-pp-item');
+            li.setAttribute('data-key', cat.id);
+            var icon = el('span', 'sp-pp-thumb');
+            icon.appendChild(el('i', 'fas fa-folder-open'));
+            li.appendChild(icon);
+            var text = el('span', 'sp-pp-text');
+            text.appendChild(el('span', 'sp-pp-name', cat.name));
+            text.appendChild(el('span', 'sp-pp-meta', (cat.path ? cat.path + ' › ' : '') + cat.name + (cat.seo ? '  ·  /' + cat.seo : '')));
+            li.appendChild(text);
+            return li;
+        };
+
         var init = function (root, force) {
             if (!root || (root.hasAttribute('data-sp-picker-ready') && !force)) {
                 return;
             }
             root.setAttribute('data-sp-picker-ready', '1');
-            var mode    = root.getAttribute('data-sp-picker') === 'coupon' ? 'coupon' : 'products';
+            var mode    = root.getAttribute('data-sp-picker');
+            mode = mode === 'coupon' || mode === 'category' ? mode : 'products';
             var isCoupon = mode === 'coupon';
-            var max     = isCoupon ? 1 : (parseInt(root.getAttribute('data-max'), 10) || 4);
+            var isCategory = mode === 'category';
+            var single  = isCoupon || isCategory;
+            var max     = single ? 1 : (parseInt(root.getAttribute('data-max'), 10) || 4);
+            var buildItem = function (item, withHandle) {
+                if (isCoupon) { return couponItem(item); }
+                if (isCategory) { return categoryItem(item); }
+                return productItem(item, withHandle);
+            };
             var input   = root.querySelector('.sp-picker-value');
             var ui      = root.querySelector('.sp-picker-ui');
             var items   = [];
@@ -162,10 +185,13 @@
             search.type = 'search';
             search.autocomplete = 'off';
             search.placeholder = root.getAttribute('data-placeholder')
-                || (isCoupon ? 'Kupon suchen: Name oder Code' : 'Artikel suchen: Name, Artikelnummer oder GTIN');
+                || (isCoupon ? 'Kupon suchen: Name oder Code'
+                    : (isCategory ? 'Kategorie suchen: Name' : 'Artikel suchen: Name, Artikelnummer oder GTIN'));
             var status   = ui.appendChild(el('p', 'sp-pp-status'));
             var results  = ui.appendChild(el('ul', 'sp-pp-results'));
             var keyOf    = function (item) { return isCoupon ? item.code : String(item.id); };
+            var searchFn = isCoupon ? 'startseitePlusCouponSearch'
+                : (isCategory ? 'startseitePlusCategorySearch' : 'startseitePlusProductSearch');
 
             var save = function () {
                 var value = items.map(keyOf).join(';');
@@ -178,7 +204,7 @@
                 selected.innerHTML = '';
                 warn.textContent = '';
                 items.forEach(function (item) {
-                    var li = isCoupon ? couponItem(item) : productItem(item, true);
+                    var li = buildItem(item, true);
                     var remove = el('button', 'sp-pp-remove');
                     remove.type = 'button';
                     remove.title = 'Entfernen';
@@ -197,8 +223,8 @@
                     }
                 });
                 empty.style.display = items.length || !empty.textContent ? 'none' : '';
-                box.style.display = isCoupon && items.length ? 'none' : '';
-                if (isCoupon && items.length) {
+                box.style.display = single && items.length ? 'none' : '';
+                if (single && items.length) {
                     results.innerHTML = '';
                     status.textContent = '';
                 }
@@ -214,12 +240,12 @@
             var renderResults = function (list) {
                 results.innerHTML = '';
                 list.forEach(function (item) {
-                    var li = isCoupon ? couponItem(item) : productItem(item, false);
+                    var li = buildItem(item, false);
                     li.addEventListener('click', function () {
                         if (items.some(function (other) { return keyOf(other) === keyOf(item); })) {
                             return;
                         }
-                        if (isCoupon) {
+                        if (single) {
                             items = [item];
                         } else if (items.length >= max) {
                             status.textContent = 'Höchstens ' + max + ' Artikel – entferne zuerst einen.';
@@ -245,9 +271,7 @@
                     return;
                 }
                 status.textContent = 'Suche …';
-                var request = isCoupon
-                    ? call('startseitePlusCouponSearch', [term, false])
-                    : call('startseitePlusProductSearch', [term]);
+                var request = call(searchFn, isCoupon ? [term, false] : [term]);
                 request.then(function (list) {
                     if (no !== requestNo) { return; }
                     if (isCoupon) {
@@ -255,7 +279,9 @@
                             ? (term ? list.length + ' Treffer' : 'Neueste Kupons') + ' – zum Auswählen anklicken. ' + HIDDEN_HINT
                             : 'Keine passenden Kupons gefunden. ' + HIDDEN_HINT;
                     } else {
-                        status.textContent = list.length ? list.length + ' Treffer – zum Hinzufügen anklicken' : 'Keine Artikel gefunden.';
+                        status.textContent = list.length
+                            ? list.length + ' Treffer – zum ' + (single ? 'Auswählen' : 'Hinzufügen') + ' anklicken'
+                            : (isCategory ? 'Keine Kategorie gefunden.' : 'Keine Artikel gefunden.');
                     }
                     renderResults(list);
                 }).catch(function (error) {
@@ -297,10 +323,10 @@
             var initial = (input.value || '').split(/[;,\s]+/).filter(Boolean);
             renderSelected();
             if (initial.length) {
-                status.textContent = isCoupon ? 'Lade Kupon …' : 'Lade Artikel …';
+                status.textContent = 'Lade Auswahl …';
                 var load = isCoupon
-                    ? call('startseitePlusCouponSearch', [initial[0], true])
-                    : call('startseitePlusProductSearch', [initial.map(Number)]);
+                    ? call(searchFn, [initial[0], true])
+                    : call(searchFn, [(single ? initial.slice(0, 1) : initial).map(Number)]);
                 load.then(function (list) {
                     status.textContent = '';
                     if (list.length) {
@@ -308,6 +334,8 @@
                         renderSelected();
                     } else if (isCoupon) {
                         status.textContent = 'Gespeicherter Code „' + initial[0] + '“ wurde nicht gefunden – bitte neu auswählen.';
+                    } else if (isCategory) {
+                        status.textContent = 'Gespeicherte Kategorie wurde nicht gefunden – bitte neu auswählen.';
                     }
                 }).catch(function (error) {
                     status.textContent = 'Auswahl konnte nicht geladen werden: ' + error.message;

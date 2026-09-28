@@ -37,6 +37,9 @@ class sliderPlus extends Portlet
         'deal'     => '',
         'products' => '',
         'deal-bg'  => 'tint',
+        'deal-category' => '',
+        'deal-button'   => '',
+        'deal-link'     => '',
     ];
 
     /** Sichtbarkeit der Slide-Felder je Slide-Typ (Repeater-Option showIf) */
@@ -89,10 +92,16 @@ class sliderPlus extends Portlet
                     $view = ['found' => false, 'show' => false, 'problems' => ['Bitte einen Kupon auswählen.']];
                 } else {
                     $deals ??= DealService::create();
-                    $view    = $deals->view($slide['deal'], '', $slide['products'], [
-                        'kicker' => $slide['kicker'],
-                        'title'  => $slide['title'],
-                        'text'   => $slide['desc'],
+                    $link    = $deals->categoryUrl((int)$slide['deal-category']);
+                    if ($link === '') {
+                        $link = self::safeUrl($slide['deal-link']);
+                    }
+                    $view = $deals->view($slide['deal'], '', $slide['products'], [
+                        'kicker'    => $slide['kicker'],
+                        'title'     => $slide['title'],
+                        'text'      => $slide['desc'],
+                        'link'      => $link,
+                        'linkLabel' => $slide['deal-button'],
                     ]);
                 }
                 if (!$view['show'] && !$isPreview) {
@@ -273,6 +282,28 @@ class sliderPlus extends Portlet
                         'width'  => 100,
                         'help'   => \__('Überschrift, Kicker und Text sind beim Deal-Slide optional – leer werden sie automatisch aus dem Kupon erzeugt. Das Bild ist optional; ohne Bild gilt die Hintergrundfarbe.'),
                         'showIf' => self::SHOW_DEAL,
+                    ],
+                    [
+                        'name'   => 'deal-category',
+                        'label'  => \__('Button verlinkt auf Kategorie'),
+                        'type'   => 'category',
+                        'width'  => 100,
+                        'showIf' => self::SHOW_DEAL,
+                    ],
+                    [
+                        'name'        => 'deal-button',
+                        'label'       => \__('Button-Text'),
+                        'width'       => 40,
+                        'placeholder' => \__('Button-Text – leer: „Zur Aktion“'),
+                        'showIf'      => self::SHOW_DEAL,
+                    ],
+                    [
+                        'name'        => 'deal-link',
+                        'label'       => \__('Oder eigener Link (URL)'),
+                        'width'       => 60,
+                        'placeholder' => \__('Oder eigener Link (URL), falls keine Kategorie gewählt ist'),
+                        'help'        => \__('Ohne Kategorie und Link zeigt die Karte stattdessen „In den Warenkorb“ mit automatischer Code-Einlösung.'),
+                        'showIf'      => self::SHOW_DEAL,
                     ],
                     ['name' => 'button', 'label' => \__('Button-Text'), 'width' => 40, 'showIf' => self::SHOW_IMAGE],
                     [

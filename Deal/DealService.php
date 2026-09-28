@@ -23,7 +23,8 @@ class DealService
 {
     public const IO_FUNCTION           = 'startseitePlusDeal';
     public const ADMIN_SEARCH_FUNCTION = 'startseitePlusProductSearch';
-    public const ADMIN_COUPON_FUNCTION = 'startseitePlusCouponSearch';
+    public const ADMIN_COUPON_FUNCTION   = 'startseitePlusCouponSearch';
+    public const ADMIN_CATEGORY_FUNCTION = 'startseitePlusCategorySearch';
     public const MAX_PRODUCTS          = 4;
 
     public function __construct(private readonly DbInterface $db)
@@ -250,6 +251,88 @@ class DealService
                 'thumb'      => $this->thumbUrl($row),
             ];
         }, $rows);
+    }
+
+    /**
+     * Kategoriesuche für den Kategorie-Picker im OPC-Editor (Admin-IO): Suchtext im Namen oder ID-Liste.
+     * Liefert den Pfad (z. B. "Männer › Zubehör") zur Unterscheidung gleichnamiger Kategorien.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchCategories(mixed $query): array
+    {
+        $select = 'SELECT k.kKategorie, k.cName, p1.cName AS parent1, p2.cName AS parent2,
+                          (SELECT s.cSeo FROM tseo s
+                            WHERE s.cKey = \'kKategorie\' AND s.kKey = k.kKategorie
+                            ORDER BY s.kSprache LIMIT 1) AS cSeo
+                     FROM tkategorie k
+                     LEFT JOIN tkategorie p1 ON p1.kKategorie = k.kOberKategorie
+                     LEFT JOIN tkategorie p2 ON p2.kKategorie = p1.kOberKategorie';
+        try {
+            if (\is_array($query)) {
+                $ids = self::parseIds(\implode(';', \array_map('strval', $query)));
+                if ($ids === []) {
+                    return [];
+                }
+                $rows = $this->db->getObjects($select . ' WHERE k.kKategorie IN (' . \implode(',', $ids) . ')');
+            } else {
+                $term = \trim(\is_scalar($query) ? (string)$query : '');
+                if (\mb_strlen($term) < 2) {
+                    return [];
+                }
+                $like = '%' . \addcslashes($term, '%_\\') . '%';
+                $rows = $this->db->getObjects(
+                    $select . ' WHERE k.cName LIKE :q
+                        ORDER BY (k.cName = :exact) DESC, k.cName, p1.cName
+                        LIMIT 30',
+                    ['q' => $like, 'exact' => $term]
+                );
+            }
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+
+        return \array_map(static fn(object $row): array => [
+            'id'   => (int)$row->kKategorie,
+            'name' => (string)$row->cName,
+            'path' => \implode(' › ', \array_filter([(string)($row->parent2 ?? ''), (string)($row->parent1 ?? '')])),
+            'seo'  => (string)($row->cSeo ?? ''),
+        ], $rows);
+    }
+
+    /**
+     * Shop-URL einer Kategorie in der aktuellen Sprache (SEO-URL, sonst ?k=ID); leer, wenn es sie nicht gibt.
+     */
+    public function categoryUrl(int $categoryID): string
+    {
+        if ($categoryID <= 0) {
+            return '';
+        }
+        try {
+            $langID = Shop::getLanguageID();
+            $row    = $this->db->getSingleObject(
+                'SELECT cSeo FROM tseo
+                  WHERE cKey = \'kKategorie\' AND kKey = :id
+                  ORDER BY (kSprache = :lang) DESC, kSprache
+                  LIMIT 1',
+                ['id' => $categoryID, 'lang' => $langID]
+            );
+            if ($row !== null && (string)$row->cSeo !== '') {
+                return \rtrim(Shop::getURL(), '/') . '/' . $row->cSeo;
+            }
+            $exists = $this->db->getSingleObject(
+                'SELECT kKategorie FROM tkategorie WHERE kKategorie = :id',
+                ['id' => $categoryID]
+            );
+
+            return $exists !== null ? \rtrim(Shop::getURL(), '/') . '/?k=' . $categoryID : '';
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return '';
+        }
     }
 
     /**
@@ -542,7 +625,8 @@ class DealService
 
     /**
      * Anzeige-Daten inkl. fertiger Texte für Deal-Banner und Deal-Slides (Hero-Slider).
-     * Optionen: kicker, title, text, btnLabel (leer = automatisch), showButton, showPrices, showValidity.
+     * Optionen: kicker, title, text, btnLabel (leer = automatisch), showButton, showPrices, showValidity,
+     * link / linkLabel (Deal-Slides: Button verlinkt z. B. auf die Aktions-Kategorie statt in den Warenkorb).
      *
      * @param array<string, mixed> $opts
      * @return array<string, mixed>
@@ -576,7 +660,14 @@ class DealService
                 default              => $isEn ? 'Add all to cart' : 'Alle in den Warenkorb',
             };
         }
-        $deal['canAdd']      = $deal['buyable'] && ($opts['showButton'] ?? true);
+        $deal['link']        = (string)($opts['link'] ?? '');
+        $deal['linkLabel']   = (string)($opts['linkLabel'] ?? '');
+        if ($deal['linkLabel'] === '') {
+            $deal['linkLabel'] = $isEn ? 'View deal' : 'Zur Aktion';
+        }
+        $deal['canAdd']      = $deal['link'] === '' && $deal['buyable'] && ($opts['showButton'] ?? true);
+        $deal['hasAction']   = $deal['canAdd'] || $deal['link'] !== '';
+        $deal['savingLabel'] = $deal['hasPrices'] ? ($isEn ? 'You save ' : 'Du sparst ') . $deal['saving'] : '';
         $deal['showPrices']  = $deal['hasPrices'] && ($opts['showPrices'] ?? true);
         $deal['showValid']   = $deal['validLabel'] !== '' && ($opts['showValidity'] ?? true);
         $deal['codeLabel']   = $isEn ? 'Your code' : 'Dein Code';
