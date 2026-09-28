@@ -76,6 +76,8 @@ CSS-Klasse, Ausblenden je Breakpoint) und **Animation** (WOW.js-Einblendungen).
   abgesicherten Lesefunktionen (`getKey`, `getNum`, `isTrue`, `getItems`, `safeColor`, `safeUrl`) und der Migration
   der 1.x-Einstellungen.
 - `Portlets/Common/common.css` – gemeinsame Styles (Buttons `.sp-btn--*`, Kicker, Hintergründe, Countdown, `.sp-full-bleed`).
+- Jedes Portlet hat eine `preview.css` für den OPC-Editor (lädt `common.css` und `style.css` per `@import`), damit neu
+  hineingezogene Portlets sofort gestylt sind. Versions-Parameter bei jedem Release mit anheben.
 - Jedes Portlet hat ein eigenes `style.css`; beide Dateien werden über `getExtraCssFiles()` mit Versions-Parameter
   eingebunden (auch im OPC-Editor). Es gibt kein Inline-CSS mehr in den Templates.
 - Farben: `--sp-accent` (Akzentfarbe des Portlets) → `--primary` (Template) → `#FFA54F`.
