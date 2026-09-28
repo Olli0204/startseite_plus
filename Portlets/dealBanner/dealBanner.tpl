@@ -41,30 +41,10 @@
              data-sp-deal
              {$instance->getAnimationDataAttributeString()}>
 
-        {* ---------- Code mit Kopieren-Button (in allen Layouts) ---------- *}
-        {capture name=spDealCode}
-            <span class="sp-deal__code">
-                <span class="sp-deal__code-value">{$deal.code|escape:'html'}</span>
-                <button type="button" class="sp-deal__copy" data-sp-copy="{$deal.code|escape:'html'}"
-                        data-sp-copied="{$deal.copiedLabel|escape:'html'}" title="{$deal.copyLabel|escape:'html'}">
-                    <i class="far fa-copy" aria-hidden="true"></i>
-                    <span class="sp-deal__copy-label">{$deal.copyLabel|escape:'html'}</span>
-                </button>
-            </span>
-        {/capture}
+        {* Code mit Kopieren-Button und Warenkorb-Button (gemeinsame Bausteine, in allen Layouts) *}
+        {capture name=spDealCode}{include file=$portlet->getCommonTemplate('deal-code.tpl') deal=$deal}{/capture}
 
-        {capture name=spDealButton}
-            {if $deal.canAdd}
-                <button type="button" class="sp-btn sp-btn--primary sp-deal__add"
-                        data-sp-deal-add="{$deal.ids|escape:'html'}"
-                        data-sp-code="{$deal.code|escape:'html'}"
-                        data-sp-token="{$deal.token|escape:'html'}"
-                        {if $isPreview}disabled{/if}>
-                    <i class="fas fa-shopping-cart" aria-hidden="true"></i>
-                    <span>{$deal.btnLabel|escape:'html'}</span>
-                </button>
-            {/if}
-        {/capture}
+        {capture name=spDealButton}{include file=$portlet->getCommonTemplate('deal-button.tpl') deal=$deal isPreview=$isPreview}{/capture}
 
         {capture name=spDealMeta}
             {if $deal.showValid || $deal.countdown !== null}

@@ -106,6 +106,14 @@
 .sp-hero__text { margin: 0 0 1rem; font-size: clamp(.9rem, 1.4vw, 1.15rem); opacity: .95; }
 .sp-hero__btn { margin-top: .25rem; }
 
+/* Deal-Slides: Karte statt Beschriftung, optional ohne Bild (Hintergrundfarbe) */
+.sp-hero__media--blank { aspect-ratio: 21 / 9; }
+.sp-hero__caption--deal { padding: 3% 8%; }
+@media (min-width: 768px) {
+    .sp-hero--cap-left  .sp-hero__caption--deal,
+    .sp-hero--cap-right .sp-hero__caption--deal { padding-left: 9%; padding-right: 9%; }
+}
+
 /* Navigation */
 .sp-hero .sp-hero__dots { z-index: 3; margin-bottom: .9rem; }
 .sp-hero .sp-hero__dots li {
@@ -136,7 +144,9 @@
 .sp-hero .carousel-control-next:hover .carousel-control-next-icon { background-color: var(--sp-accent, var(--primary, #FFA54F)); }
 
 @media (max-width: 767.98px) {
+    .sp-hero--m-aspect-same.sp-hero--aspect-natural .sp-hero__media--blank { aspect-ratio: 4 / 3; }
     .sp-hero__caption { padding: 5% 11% 13%; }
+    .sp-hero__caption--deal { padding: 4% 14% 12%; }
     .sp-hero--cap-bottom-left .sp-hero__caption,
     .sp-hero--cap-bottom-center .sp-hero__caption { padding-bottom: 14%; }
     .sp-hero__caption-inner { text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }

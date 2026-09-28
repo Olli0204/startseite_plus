@@ -27,11 +27,32 @@ trait PortletHelper
     {
         $version = '?v=' . \rawurlencode($this->getPluginVersion());
         $files   = [$this->getCommonUrl() . 'common.css' . $version];
+        foreach ($this->getSharedCssFiles() as $shared) {
+            $files[] = $this->getCommonUrl() . $shared . $version;
+        }
         if (\file_exists($this->getBasePath() . 'style.css')) {
             $files[] = $this->getBaseUrl() . 'style.css' . $version;
         }
 
         return $files;
+    }
+
+    /**
+     * Zusätzliche gemeinsame Stylesheets aus Portlets/Common/ (z. B. deal.css), die dieses Portlet braucht.
+     *
+     * @return string[]
+     */
+    protected function getSharedCssFiles(): array
+    {
+        return [];
+    }
+
+    /**
+     * Absoluter Pfad eines gemeinsamen Template-Bausteins aus Portlets/Common/ (ohne "file:"-Präfix).
+     */
+    public function getCommonTemplate(string $name): string
+    {
+        return \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/' . \basename($name);
     }
 
     public function getPluginVersion(): string
@@ -62,7 +83,7 @@ trait PortletHelper
      */
     public function getCountdownTemplate(): string
     {
-        return \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/countdown.tpl';
+        return $this->getCommonTemplate('countdown.tpl');
     }
 
     /**

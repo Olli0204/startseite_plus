@@ -1,6 +1,6 @@
-{* Startseite Plus – Hero-Slider (Bootstrap-4-Carousel aus NOVA) *}
+{* Startseite Plus – Hero-Slider (Bootstrap-4-Carousel aus NOVA), Slides mit Bild oder als Deal-Karte *}
 {$uid        = $instance->getUid()}
-{$slides     = $portlet->getSlides($instance)}
+{$slides     = $portlet->getSlides($instance, $isPreview)}
 {$count      = $slides|count}
 {$aspect     = $portlet->getKey($instance, 'aspect', 'natural')}
 {$aspectM    = $portlet->getKey($instance, 'aspect-mobile', 'same')}
@@ -20,6 +20,7 @@
 {$wrap       = !$inContainer && $widthMode === 'container'}
 {$fullBleed  = $inContainer && $widthMode === 'full'}
 {$rootStyle  = $portlet->rootStyle($instance, ['accent' => $portlet->getAccent($instance), 'interval' => $interval|cat:'ms'])}
+{$dealTpl    = $portlet->getCommonTemplate('deal-hero.tpl')}
 
 {if $count === 0}
     <div class="sp-placeholder" style="{$instance->getStyleString()}">
@@ -46,37 +47,49 @@
         {/if}
         <div class="carousel-inner">
             {foreach $slides as $i => $slide}
+                {$deal        = $slide.dealView}
+                {$isDeal      = $deal !== null}
+                {$hasImage    = $slide.url !== ''}
                 {$link        = $portlet->safeUrl($slide.link)}
                 {$hasButton   = $slide.button !== ''}
-                {$mediaIsLink = $link !== '' && !$hasButton && !$isPreview}
-                {$hasCaption  = $slide.title !== '' || $slide.kicker !== '' || $slide.desc !== '' || $hasButton}
+                {$mediaIsLink = $link !== '' && !$hasButton && !$isPreview && !$isDeal}
+                {$hasCaption  = !$isDeal && ($slide.title !== '' || $slide.kicker !== '' || $slide.desc !== '' || $hasButton)}
                 {$focus       = $portlet->cssKey($slide.focus, 'center')}
                 {$lazy        = $i > 0}
-                {$img         = $instance->getImageAttributes($slide.url, $slide.alt, $slide.title)}
-                <div class="carousel-item{if $i === 0} active{/if}">
-                    {if $mediaIsLink}
-                        <a class="sp-hero__media" href="{$link|escape:'html'}"{if $slide.title !== ''} title="{$slide.title|escape:'html'}"{/if}>
+                <div class="carousel-item{if $i === 0} active{/if}{if $isDeal} sp-hero__item--deal{/if}"
+                     {if $isDeal && !empty($deal.validUntil)}data-sp-deal-until="{$deal.validUntil}"{/if}>
+                    {if $hasImage}
+                        {$img = $instance->getImageAttributes($slide.url, $slide.alt, $slide.title)}
+                        {if $mediaIsLink}
+                            <a class="sp-hero__media" href="{$link|escape:'html'}"{if $slide.title !== ''} title="{$slide.title|escape:'html'}"{/if}>
+                        {else}
+                            <div class="sp-hero__media">
+                        {/if}
+                            {image src=$img.src
+                                   srcset=$img.srcset
+                                   sizes=$img.srcsizes
+                                   alt=$img.alt|escape:'html'
+                                   class="sp-hero__img sp-hero__img--focus-{$focus}"
+                                   width=$img.realWidth
+                                   height=$img.realHeight
+                                   lazy=$lazy
+                                   webp=true}
+                        {if $mediaIsLink}
+                            </a>
+                        {else}
+                            </div>
+                        {/if}
+                        {if $overlay !== 'none'}
+                            <div class="sp-hero__overlay" aria-hidden="true"></div>
+                        {/if}
                     {else}
-                        <div class="sp-hero__media">
+                        <div class="sp-hero__media sp-hero__media--blank sp-bg-{$slide['deal-bg']}" aria-hidden="true"></div>
                     {/if}
-                        {image src=$img.src
-                               srcset=$img.srcset
-                               sizes=$img.srcsizes
-                               alt=$img.alt|escape:'html'
-                               class="sp-hero__img sp-hero__img--focus-{$focus}"
-                               width=$img.realWidth
-                               height=$img.realHeight
-                               lazy=$lazy
-                               webp=true}
-                    {if $mediaIsLink}
-                        </a>
-                    {else}
+                    {if $isDeal}
+                        <div class="sp-hero__caption sp-hero__caption--deal">
+                            {include file=$dealTpl deal=$deal isPreview=$isPreview titleTag=$titleTag portlet=$portlet}
                         </div>
-                    {/if}
-                    {if $overlay !== 'none'}
-                        <div class="sp-hero__overlay" aria-hidden="true"></div>
-                    {/if}
-                    {if $hasCaption}
+                    {elseif $hasCaption}
                         <div class="sp-hero__caption">
                             <div class="sp-hero__caption-inner">
                                 {if $slide.kicker !== ''}
