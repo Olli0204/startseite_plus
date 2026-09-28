@@ -26,6 +26,28 @@ class dealBanner extends Portlet
     }
 
     /**
+     * @inheritdoc
+     */
+    public function initInstance(PortletInstance $instance, bool $isFrontend = true): void
+    {
+        parent::initInstance($instance, $isFrontend);
+        // 2.3.x: Artikelnummern als Text ("products") -> Artikel-Picker ("product-ids")
+        $numbers = $this->getString($instance, 'products');
+        if ($numbers === '' || $this->getString($instance, 'product-ids') !== '') {
+            return;
+        }
+        try {
+            $ids = DealService::create()->idsForNumbers(DealService::parseNumbers($numbers, null));
+        } catch (\Throwable) {
+            return;
+        }
+        if ($ids !== []) {
+            $instance->setProperty('product-ids', \implode(';', $ids));
+            $instance->setProperty('products', '');
+        }
+    }
+
+    /**
      * Anzeige-Daten inkl. fertiger Texte; null, solange kein Code gepflegt ist.
      *
      * @return array<string, mixed>|null
@@ -37,7 +59,11 @@ class dealBanner extends Portlet
             return null;
         }
         try {
-            $deal = DealService::create()->buildView($code, $this->getString($instance, 'products'));
+            $deal = DealService::create()->buildView(
+                $code,
+                $this->getString($instance, 'products'),
+                $this->getString($instance, 'product-ids')
+            );
         } catch (\Throwable $e) {
             return [
                 'show'     => false,
@@ -156,13 +182,15 @@ class dealBanner extends Portlet
                 \__('Code eines Standardkupons aus JTL (fester Betrag oder Prozent). Rabatt, Gültigkeit und Artikel werden daraus gelesen. Ist der Kupon inaktiv, abgelaufen oder aufgebraucht, blendet sich der Banner im Shop aus.'),
                 'z. B. ROXYDUO'
             ),
-            'products'        => $this->propText(
-                \__('Artikelnummern (optional)'),
-                50,
-                '',
-                \__('Kommagetrennt, höchstens 4. Leer = die im Kupon hinterlegten Artikel.'),
-                'z. B. ERJBL03245, ERJBL03246'
-            ),
+            'product-ids'     => [
+                'type'      => 'startseite_plus.productpicker',
+                'label'     => \__('Artikel (optional)'),
+                'default'   => '',
+                'width'     => 100,
+                'max'       => DealService::MAX_PRODUCTS,
+                'emptyText' => \__('Keine Artikel ausgewählt – es werden die im Kupon hinterlegten Artikel angezeigt.'),
+                'desc'      => \__('Artikel suchen und anklicken, höchstens 4; Reihenfolge per Ziehen ändern. Ohne Auswahl zeigt der Banner die Artikel, die im Kupon hinterlegt sind.'),
+            ],
             'layout'          => $this->propSelect(
                 \__('Layout'),
                 [

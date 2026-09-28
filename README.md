@@ -38,7 +38,9 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 ### Deal-Banner
 - Gedacht für Kategorie- und Aktionsseiten, z. B. über der Überschrift „Taschen“ (OPC-Bereich oberhalb des Inhalts)
 - Einzige Pflichtangabe ist der **Kupon-Code**. Rabatt (fester Betrag oder Prozent), Gültig-bis-Datum und – wenn im
-  Portlet keine Artikelnummern stehen – die Artikel werden aus dem JTL-Kupon gelesen
+  Portlet keine Artikel ausgewählt sind – die Artikel werden aus dem JTL-Kupon gelesen
+- Artikel-Picker (ab 2.4.0): Suche nach Name, Artikelnummer oder GTIN direkt im OPC, Treffer mit Vorschaubild anklicken,
+  Reihenfolge per Ziehen ändern (höchstens 4). Früher eingetragene Artikelnummern werden automatisch übernommen
 - Layouts: Bundle-Karte (Artikelbilder, Summe, Bundle-Preis), schlanke Coupon-Leiste, Gutschein-Ticket
 - Button „Beide/Alle in den Warenkorb“: legt alle Artikel per IO-Aufruf (`startseitePlusDeal`) in den Warenkorb und löst den
   Kupon mit der Core-Prüfung (`Kupon::check()`/`accept()`) ein; ein bereits eingelöster anderer Kupon wird nicht ersetzt.
@@ -75,6 +77,7 @@ CSS-Klasse, Ausblenden je Breakpoint) und **Animation** (WOW.js-Einblendungen).
 - Jedes Portlet hat ein eigenes `style.css`; beide Dateien werden über `getExtraCssFiles()` mit Versions-Parameter
   eingebunden (auch im OPC-Editor). Es gibt kein Inline-CSS mehr in den Templates.
 - Farben: `--sp-accent` (Akzentfarbe des Portlets) → `--primary` (Template) → `#FFA54F`.
+- `portlet_input_types/productpicker.tpl` – Artikel-Picker (Admin-IO `startseitePlusProductSearch`, gespeichert als `"101;102"`).
 - `portlet_input_types/repeater.tpl` – generischer Listen-Editor (Bild + beliebige Felder: text, textarea, select,
   checkbox, number, color) mit Drag-&-Drop-Sortierung, Kopieren und Löschen. Leere Einträge werden beim Speichern verworfen.
 - Alle Ausgaben sind escaped; URLs mit `javascript:`/`data:` werden verworfen, Farben und CSS-Schlüssel validiert.

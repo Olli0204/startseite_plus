@@ -39,6 +39,17 @@ class Bootstrap extends Bootstrapper
                 );
             }
         });
+
+        // Artikel-Picker im OPC-Editor (Admin-IO prüft Login und CSRF-Token selbst)
+        $dispatcher->hookInto(\HOOK_IO_HANDLE_REQUEST_ADMIN, function (array $args): void {
+            $io = $args['io'] ?? null;
+            if (\is_object($io) && !$io->exists(DealService::ADMIN_SEARCH_FUNCTION)) {
+                $io->register(
+                    DealService::ADMIN_SEARCH_FUNCTION,
+                    static fn(mixed $query = ''): array => DealService::create()->searchProducts($query)
+                );
+            }
+        });
     }
 
     /**

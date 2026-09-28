@@ -21,8 +21,9 @@ use Plugin\startseite_plus\Countdown\CountdownService;
  */
 class DealService
 {
-    public const IO_FUNCTION  = 'startseitePlusDeal';
-    public const MAX_PRODUCTS = 4;
+    public const IO_FUNCTION           = 'startseitePlusDeal';
+    public const ADMIN_SEARCH_FUNCTION = 'startseitePlusProductSearch';
+    public const MAX_PRODUCTS          = 4;
 
     public function __construct(private readonly DbInterface $db)
     {
@@ -114,23 +115,54 @@ class DealService
     }
 
     /**
-     * @param string[] $numbers
-     * @return Artikel[]
+     * Artikel-IDs aus der Picker-Property ("101;102", auch Komma-getrennt).
+     *
+     * @return int[]
      */
-    public function loadProducts(array $numbers): array
+    public static function parseIds(string $ids): array
     {
-        $products = [];
+        $parts = \array_map('intval', \preg_split('/[,;\s]+/', $ids) ?: []);
+
+        return \array_slice(\array_values(\array_unique(\array_filter($parts, static fn(int $id) => $id > 0))), 0, self::MAX_PRODUCTS);
+    }
+
+    /**
+     * Artikelnummern in Artikel-IDs übersetzen (Reihenfolge bleibt, unbekannte Nummern entfallen).
+     *
+     * @param string[] $numbers
+     * @return int[]
+     */
+    public function idsForNumbers(array $numbers): array
+    {
+        $ids = [];
         foreach ($numbers as $number) {
             try {
                 $row = $this->db->getSingleObject(
                     'SELECT kArtikel FROM tartikel WHERE cArtNr = :nr LIMIT 1',
                     ['nr' => $number]
                 );
-                if ($row === null) {
-                    continue;
+                if ($row !== null) {
+                    $ids[] = (int)$row->kArtikel;
                 }
+            } catch (\Throwable $e) {
+                $this->logError($e);
+            }
+        }
+
+        return \array_values(\array_unique($ids));
+    }
+
+    /**
+     * @param int[] $ids
+     * @return Artikel[]
+     */
+    public function loadProducts(array $ids): array
+    {
+        $products = [];
+        foreach ($ids as $id) {
+            try {
                 $product = new Artikel();
-                $product->fuelleArtikel((int)$row->kArtikel, Artikel::getDefaultOptions());
+                $product->fuelleArtikel($id, Artikel::getDefaultOptions());
                 if ((int)($product->kArtikel ?? 0) > 0) {
                     $products[] = $product;
                 }
@@ -140,6 +172,85 @@ class DealService
         }
 
         return $products;
+    }
+
+    /**
+     * Artikelsuche für den Artikel-Picker im OPC-Editor (Admin-IO): Suchtext (Name, Artikelnummer, GTIN)
+     * oder Liste von Artikel-IDs. Variationskinder werden ausgelassen, da sie im Shop nicht einzeln gelistet sind.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchProducts(mixed $query): array
+    {
+        $select = 'SELECT a.kArtikel, a.cName, a.cArtNr, a.cBarcode, a.nIstVater, p.cPfad,
+                       (SELECT s.cSeo FROM tseo s
+                         WHERE s.cKey = \'kArtikel\' AND s.kKey = a.kArtikel
+                         ORDER BY s.kSprache LIMIT 1) AS cSeo
+                   FROM tartikel a
+                   LEFT JOIN tartikelpict p ON p.kArtikel = a.kArtikel AND p.nNr = 1';
+        try {
+            if (\is_array($query)) {
+                $ids = self::parseIds(\implode(';', \array_map('strval', $query)));
+                if ($ids === []) {
+                    return [];
+                }
+                $rows = $this->db->getObjects($select . ' WHERE a.kArtikel IN (' . \implode(',', $ids) . ')');
+                $byId = [];
+                foreach ($rows as $row) {
+                    $byId[(int)$row->kArtikel] = $row;
+                }
+                $rows = \array_values(\array_filter(\array_map(static fn(int $id) => $byId[$id] ?? null, $ids)));
+            } else {
+                $term = \trim(\is_scalar($query) ? (string)$query : '');
+                if (\mb_strlen($term) < 2) {
+                    return [];
+                }
+                $like = '%' . \addcslashes($term, '%_\\') . '%';
+                $rows = $this->db->getObjects(
+                    $select . ' WHERE a.kVaterArtikel = 0
+                          AND (a.cName LIKE :q OR a.cArtNr LIKE :q2 OR a.cBarcode LIKE :q3)
+                        ORDER BY (a.cArtNr = :exact) DESC, a.cName
+                        LIMIT 25',
+                    ['q' => $like, 'q2' => $like, 'q3' => $like, 'exact' => $term]
+                );
+            }
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+
+        return \array_map(fn(object $row): array => [
+            'id'         => (int)$row->kArtikel,
+            'name'       => (string)$row->cName,
+            'artNr'      => (string)$row->cArtNr,
+            'variations' => (int)$row->nIstVater === 1,
+            'thumb'      => $this->thumbUrl($row),
+        ], $rows);
+    }
+
+    /**
+     * Vorschaubild (xs) wie in Artikel::holBilder() – Fehler (z. B. abweichende Core-API) ergeben einen Leerstring.
+     */
+    private function thumbUrl(object $row): string
+    {
+        if (empty($row->cPfad)) {
+            return '';
+        }
+        try {
+            $path = \JTL\Media\Image\Product::getThumb(
+                \JTL\Media\Image::TYPE_PRODUCT,
+                (int)$row->kArtikel,
+                $row,
+                \JTL\Media\Image::SIZE_XS,
+                1,
+                (string)$row->cPfad
+            );
+
+            return Shop::getImageBaseURL() . $path;
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     /**
@@ -161,13 +272,17 @@ class DealService
      *
      * @return array<string, mixed>
      */
-    public function buildView(string $code, string $numbers): array
+    public function buildView(string $code, string $numbers, string $ids = ''): array
     {
         $lang     = CountdownService::currentLanguage();
         $isEn     = $lang === 'eng';
         $coupon   = $this->findCoupon($code);
         $problems = $this->displayProblems($coupon, $code);
-        $products = $this->loadProducts(self::parseNumbers($numbers, $coupon));
+        $idList   = self::parseIds($ids);
+        if ($idList === []) {
+            $idList = $this->idsForNumbers(self::parseNumbers($numbers, $coupon));
+        }
+        $products = $this->loadProducts($idList);
         $netto    = Frontend::getCustomerGroup()->isMerchant();
 
         $items    = [];
@@ -217,6 +332,11 @@ class DealService
             'found'       => $coupon !== null,
             'show'        => $problems === [],
             'problems'    => $problems,
+            'notes'       => \array_values(\array_map(
+                static fn(array $item): string => '„' . $item['name'] . '“ hat Variationen oder ist nicht direkt bestellbar – '
+                    . 'der Warenkorb-Button wird deshalb nicht angezeigt.',
+                \array_filter($items, static fn(array $item): bool => !$item['direct'])
+            )),
             'discount'    => $discount,
             'items'       => $items,
             'count'       => \count($items),
