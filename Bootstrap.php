@@ -10,12 +10,14 @@ use JTL\Shop;
 use JTL\Smarty\JTLSmarty;
 use Laminas\Diactoros\ServerRequestFactory;
 use Plugin\startseite_plus\Countdown\CountdownService;
+use Plugin\startseite_plus\Deal\DealService;
 
 use function Functional\first;
 
 /**
  * Startseite Plus: OPC-Portlets plus zentrale Countdown-Verwaltung.
- * Der Bootstrap stellt Countdowns für Artikeldetailseiten bereit und rendert den Admin-Tab.
+ * Der Bootstrap stellt Countdowns für Artikeldetailseiten bereit, registriert die IO-Funktion des
+ * Deal-Banners (Artikel in den Warenkorb + Kupon einlösen) und rendert den Admin-Tab.
  */
 class Bootstrap extends Bootstrapper
 {
@@ -25,6 +27,17 @@ class Bootstrap extends Bootstrapper
 
         $dispatcher->hookInto(\HOOK_ARTIKEL_PAGE, function (array $args): void {
             $this->assignProductCountdowns($args['oArtikel'] ?? null);
+        });
+
+        $dispatcher->hookInto(\HOOK_IO_HANDLE_REQUEST, function (array $args): void {
+            $io = $args['io'] ?? null;
+            if (\is_object($io) && !$io->exists(DealService::IO_FUNCTION)) {
+                $io->register(
+                    DealService::IO_FUNCTION,
+                    static fn(mixed $ids = [], mixed $code = '', mixed $token = ''): array
+                        => DealService::create()->addToCart($ids, $code, $token)
+                );
+            }
         });
     }
 
