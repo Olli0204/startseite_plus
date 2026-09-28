@@ -51,8 +51,11 @@
                     {if $deal.savingLabel !== ''}<span class="sp-deal__saving">{$deal.savingLabel|escape:'html'}</span>{/if}
                 </div>
             {/if}
-            {if $deal.showValid}
-                <div class="sp-deal__meta"><span class="sp-deal__valid"><i class="far fa-clock" aria-hidden="true"></i> {$deal.validLabel|escape:'html'}</span></div>
+            {if $deal.showValid || $deal.code !== ''}
+                <div class="sp-deal__meta">
+                    {if $deal.code !== ''}<span class="sp-deal__meta-code"><i class="fas fa-tag" aria-hidden="true"></i> {$deal.codeLabel|escape:'html'}: <strong>{$deal.code|escape:'html'}</strong></span>{/if}
+                    {if $deal.showValid}<span class="sp-deal__valid"><i class="far fa-clock" aria-hidden="true"></i> {$deal.validLabel|escape:'html'}</span>{/if}
+                </div>
             {/if}
         </div>
         <div class="sp-deal__actions">

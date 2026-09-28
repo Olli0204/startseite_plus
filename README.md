@@ -34,7 +34,9 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Überschrift, Kicker und Text des Slides ersetzen die automatischen Texte; die Karte steht an der Textposition des Sliders
 - Bild optional: ohne Bild bekommt der Slide eine Hintergrundfarbe und das Seitenverhältnis des ersten Bild-Slides
   (ab 2.8.0; ohne Bild-Slides 21:9, mobil 4:3), bei festem Seitenverhältnis dieses
-- Slider mit Deal-Slide: alle Slides gleich hoch, Mindesthöhe 16rem (mobil 14rem), Bilder werden dafür zugeschnitten
+- Slider mit Deal-Slide: alle Slides gleich hoch, Mindesthöhe 16rem (mobil 23rem, ab 2.10.0), Bilder werden dafür zugeschnitten
+- Smartphone (ab 2.10.0): Artikelzeilen mit Bild, Name, Variante und Preis (ab drei Artikeln zweispaltig), Bundle-Preis,
+  „Du sparst …“, Infozeile mit Code und Gültigkeit, Button; bei mehr Höhe zusätzlich Beschreibung und Code-Feld
 - Die Karte richtet sich nach dem Platz im Slide (CSS Container Queries): hoch → senkrechte Karte, breit und flach →
   waagerechte Leiste (Artikel | Titel und Preis | Button), schmal → kompakte Karte (Titel, Preis, Button); Browser ohne
   Container Queries nutzen die Darstellung nach Bildschirmbreite

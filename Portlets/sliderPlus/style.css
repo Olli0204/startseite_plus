@@ -157,7 +157,8 @@
 @media (max-width: 767.98px) {
     .sp-hero--m-aspect-same.sp-hero--aspect-natural .sp-hero__media--blank { aspect-ratio: var(--sp-hero-ratio, 4 / 3); }
     .sp-hero--has-deal.sp-hero--m-aspect-same.sp-hero--aspect-natural .sp-hero__media { aspect-ratio: var(--sp-hero-ratio, 4 / 3); }
-    .sp-hero--has-deal .sp-hero__media { min-height: 14rem; }
+    /* Deal-Karte braucht mobil Platz für Artikel, Preis, Code und Button */
+    .sp-hero--has-deal .sp-hero__media { min-height: 23rem; }
     .sp-hero__caption { padding: 5% 11% 13%; }
     .sp-hero__caption--deal { padding: .75rem 13% 2rem; }
     .sp-hero--cap-bottom-left .sp-hero__caption,
