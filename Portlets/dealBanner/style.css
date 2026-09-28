@@ -1,0 +1,190 @@
+/* Startseite Plus – Deal-Banner (Bundle-Karte, Coupon-Leiste, Gutschein-Ticket) */
+.sp-deal {
+    --sp-deal-accent: var(--sp-accent, var(--primary, #FFA54F));
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    margin: 0 0 1.5rem;
+    padding: 1.1rem 1.4rem;
+    border: 1px solid color-mix(in srgb, var(--sp-deal-accent) 35%, transparent);
+    color: #222;
+}
+.sp-deal[hidden] { display: none !important; }
+.sp-deal.sp-bg-none { background: #fff; border-color: #e1e5ea; }
+.sp-deal.sp-bg-light { border-color: #e1e5ea; }
+.sp-deal.sp-bg-dark,
+.sp-deal.sp-bg-accent { border-color: transparent; color: #fff; }
+.sp-deal--r-none { border-radius: 0; }
+.sp-deal--r-sm { border-radius: .35rem; }
+.sp-deal--r-md { border-radius: .75rem; }
+.sp-deal--r-lg { border-radius: 1.25rem; }
+
+.sp-deal__body { flex: 1 1 260px; min-width: 0; }
+.sp-deal__kicker { margin-bottom: .3rem; }
+.sp-bg-accent .sp-deal__kicker { color: rgba(255, 255, 255, .85); }
+.sp-deal__title { font-size: 1.2rem; font-weight: 700; line-height: 1.3; }
+.sp-deal__names,
+.sp-deal__sub,
+.sp-deal__hint,
+.sp-deal__text { margin: .2rem 0 0; font-size: .9rem; opacity: .8; }
+.sp-deal__hint { flex-basis: 100%; margin: 0; font-size: .8rem; }
+
+/* Preis */
+.sp-deal__price { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .6rem; margin-top: .45rem; }
+.sp-deal__sum { font-size: .95rem; opacity: .7; }
+.sp-deal__total { font-size: 1.45rem; font-weight: 700; color: var(--sp-deal-accent); }
+.sp-bg-accent .sp-deal__total { color: #fff; }
+.sp-deal__with { font-size: .9rem; }
+
+/* Gültigkeit und Countdown */
+.sp-deal__meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 1rem; margin-top: .5rem; font-size: .85rem; }
+.sp-deal__valid { opacity: .8; }
+.sp-deal .sp-cd { margin: 0; gap: .3rem .6rem; }
+.sp-deal .sp-cd__label { font-size: .85rem; }
+.sp-deal .sp-cd--inline .sp-cd__num { font-size: .95rem; }
+.sp-deal .sp-cd--boxes .sp-cd__unit { min-width: 2.6rem; padding: .25rem .35rem; }
+.sp-deal .sp-cd--boxes .sp-cd__num { font-size: 1.05rem; }
+.sp-deal--strip .sp-cd { margin-top: .35rem; }
+
+/* Code-Chip mit Kopieren */
+.sp-deal__code {
+    display: inline-flex;
+    align-items: stretch;
+    border: 2px dashed var(--sp-deal-accent);
+    border-radius: .4rem;
+    background: #fff;
+    color: #222;
+    overflow: hidden;
+}
+.sp-deal__code-value {
+    display: inline-flex;
+    align-items: center;
+    padding: .45rem .8rem;
+    font-family: SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+}
+.sp-deal__copy {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: 0 .75rem;
+    border: 0;
+    border-left: 1px solid #e1e5ea;
+    background: #f5f7fa;
+    color: #525252;
+    font-size: .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .2s, color .2s;
+}
+.sp-deal__copy:hover,
+.sp-deal__copy:focus { background: var(--sp-deal-accent); color: #fff; }
+.sp-deal__copy.is-copied { background: #2e8540; color: #fff; }
+
+.sp-deal__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .9rem; }
+.sp-deal__add { white-space: nowrap; }
+.sp-deal__add[disabled] { cursor: default; opacity: .75; }
+.sp-deal__add.is-loading { pointer-events: none; opacity: .7; }
+.sp-deal__msg { flex-basis: 100%; margin: 0; padding: .5rem .75rem; border-radius: .35rem; background: #fdecea; color: #a12a1f; font-size: .9rem; }
+.sp-deal__msg[hidden] { display: none; }
+
+/* ------------------------------------------------ Layout: Bundle-Karte */
+.sp-deal--bundle .sp-deal__products { display: flex; align-items: center; gap: .5rem; }
+.sp-deal__product {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    padding: .35rem;
+    border-radius: .5rem;
+    background: #fff;
+    color: #b0b6bd;
+    font-size: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+    transition: transform .2s;
+}
+a.sp-deal__product[href]:hover { transform: translateY(-2px); }
+.sp-deal__product img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.sp-deal__plus { font-size: 1.4rem; font-weight: 700; color: var(--sp-deal-accent); }
+.sp-bg-accent .sp-deal__plus { color: #fff; }
+.sp-deal--bundle .sp-deal__actions { flex: 0 1 auto; flex-direction: column; align-items: stretch; max-width: 280px; }
+.sp-deal--bundle .sp-deal__code { justify-content: space-between; }
+.sp-deal--bundle .sp-deal__hint { text-align: center; }
+
+/* ------------------------------------------------ Layout: Coupon-Leiste */
+.sp-deal--strip { padding: .8rem 1.2rem; gap: .75rem 1.2rem; }
+.sp-deal__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: var(--sp-deal-accent);
+    color: #fff;
+    font-size: 1.1rem;
+}
+.sp-bg-accent .sp-deal__icon { background: #fff; color: var(--sp-deal-accent); }
+.sp-deal--strip .sp-deal__title { font-size: 1.05rem; }
+.sp-deal--strip .sp-deal__add { padding: .5rem 1.1rem; font-size: .9rem; }
+
+/* ------------------------------------------------ Layout: Gutschein-Ticket */
+.sp-deal--ticket { flex-wrap: nowrap; align-items: stretch; gap: 0; padding: 0; overflow: hidden; border: 2px solid var(--sp-deal-accent); }
+.sp-deal--ticket .sp-deal__main { flex: 1 1 auto; min-width: 0; padding: 1.2rem 1.5rem; }
+.sp-deal--ticket .sp-deal__main .sp-deal__add { margin-top: .9rem; }
+.sp-deal--ticket .sp-deal__title { font-size: 1.35rem; }
+.sp-deal__stub {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: 1.2rem 1.6rem;
+    border-left: 2px dashed var(--sp-deal-accent);
+    background: color-mix(in srgb, var(--sp-deal-accent) 18%, #fff);
+    color: #222;
+    text-align: center;
+}
+/* Stanzkerben an der Perforation */
+.sp-deal__stub::before,
+.sp-deal__stub::after {
+    content: '';
+    position: absolute;
+    left: -11px;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--sp-deal-accent);
+    border-radius: 50%;
+    background: var(--body-bg, #fff);
+}
+.sp-deal__stub::before { top: -12px; }
+.sp-deal__stub::after { bottom: -12px; }
+.sp-deal__stub-label { font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.sp-deal__stub-hint { max-width: 14rem; font-size: .78rem; opacity: .75; }
+.sp-deal--ticket .sp-deal__code-value { font-size: 1.3rem; }
+
+/* Hinweis im OPC-Editor, wenn der Kupon im Shop nicht angezeigt würde */
+.sp-deal-warn { margin: 0 0 .5rem; padding: .6rem .9rem; border: 1px solid #f0c36d; border-radius: .35rem; background: #fff8e5; color: #7a5200; font-size: .85rem; }
+.sp-placeholder.sp-deal-warn { color: #7a5200; text-transform: none; letter-spacing: 0; }
+
+/* ------------------------------------------------ Smartphone */
+@media (max-width: 767.98px) {
+    .sp-deal { padding: 1rem; }
+    .sp-deal__product { width: 72px; height: 72px; }
+    .sp-deal--bundle .sp-deal__actions { max-width: none; flex-basis: 100%; }
+    .sp-deal--strip .sp-deal__actions { flex-basis: 100%; }
+    .sp-deal--ticket { flex-direction: column; }
+    .sp-deal__stub { border-left: 0; border-top: 2px dashed var(--sp-deal-accent); }
+    .sp-deal__stub::before,
+    .sp-deal__stub::after { top: -12px; bottom: auto; }
+    .sp-deal__stub::before { left: -12px; }
+    .sp-deal__stub::after { left: auto; right: -12px; }
+}

@@ -1,6 +1,6 @@
 # Startseite Plus
 
-JTL-Shop-5-Plugin mit sechs OPC-Portlets (OnPage Composer) für eine moderne, ansprechende Startseite.
+JTL-Shop-5-Plugin mit sieben OPC-Portlets (OnPage Composer) für eine moderne, ansprechende Startseite.
 Alle Bausteine sind responsiv, nutzen die Primärfarbe des Templates (`--primary`) als Standard-Akzent,
 laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfigurieren – ohne CSS-Kenntnisse.
 
@@ -14,6 +14,7 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 | Vorteile-Leiste | `uspBar` | Icons + Texte („Gratis Versand ab 100 €“), als Leiste, Karten oder kompakt |
 | Aktions-Banner | `promoBanner` | Bild mit Text, bis zu zwei Buttons und optionalem Countdown; blendet sich nach Ablauf aus |
 | Text und Bild | `textImage` | Zweispaltige Sektion (z. B. „Über uns“) mit Fließtext, Kennzahlen und Button |
+| Deal-Banner | `dealBanner` | Bewirbt einen JTL-Kupon (z. B. Bundle-Rabatt in einer Kategorie); „In den Warenkorb“ legt alle Artikel ab und löst den Code automatisch ein |
 
 ### Hero-Slider
 - Seitenverhältnis getrennt für Desktop und Mobil (Bild wird per `object-fit: cover` zugeschnitten, Bildausschnitt je Slide wählbar) – ersetzt den alten „200 %-Breite“-Hack für Smartphones
@@ -33,6 +34,20 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Layouts: Text auf dem Bild, Bild links, Bild rechts; optionales separates Smartphone-Bild
 - Kicker, Überschrift (H1–H4), Rich-Text, zwei Buttons mit eigenem Stil
 - Countdown bis zu einem Endzeitpunkt; danach Banner ausblenden, Hinweistext zeigen oder ohne Countdown weiterzeigen
+
+### Deal-Banner
+- Gedacht für Kategorie- und Aktionsseiten, z. B. über der Überschrift „Taschen“ (OPC-Bereich oberhalb des Inhalts)
+- Einzige Pflichtangabe ist der **Kupon-Code**. Rabatt (fester Betrag oder Prozent), Gültig-bis-Datum und – wenn im
+  Portlet keine Artikelnummern stehen – die Artikel werden aus dem JTL-Kupon gelesen
+- Layouts: Bundle-Karte (Artikelbilder, Summe, Bundle-Preis), schlanke Coupon-Leiste, Gutschein-Ticket
+- Button „Beide/Alle in den Warenkorb“: legt alle Artikel per IO-Aufruf (`startseitePlusDeal`) in den Warenkorb und löst den
+  Kupon mit der Core-Prüfung (`Kupon::check()`/`accept()`) ein; ein bereits eingelöster anderer Kupon wird nicht ersetzt.
+  Nur für Artikel ohne Variationsauswahl – sonst bleibt es beim Code mit „Kopieren“-Button
+- Ist der Kupon inaktiv, abgelaufen, aufgebraucht oder für die Kundengruppe nicht gültig, erscheint der Banner im Shop nicht;
+  im OPC-Editor steht dann ein Hinweis mit dem Grund
+- Countdown optional: bis zum Ablauf des Kupons oder aus der Countdown-Verwaltung
+- **Kupon für ein Bundle anlegen:** Standardkupon, Wert z. B. 15 € (fester Betrag), unter „Artikel“ beide Artikelnummern
+  eintragen und als Mindestbestellwert die Summe beider Artikel setzen – dann greift der Code nur, wenn beide im Warenkorb liegen
 
 ### Text und Bild
 - Bild links/rechts mit 40/50/60 % Breite; Bildstile: abgerundet, Schatten, versetzter Akzentrahmen, Kreis

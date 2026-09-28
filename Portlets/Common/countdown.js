@@ -24,7 +24,7 @@
                 if (diff <= 0) {
                     clearInterval(timer);
                     var mode = el.getAttribute('data-sp-expired');
-                    var host = el.closest('.sp-promo, .sp-cd-product');
+                    var host = el.closest('.sp-promo, .sp-deal, .sp-cd-product');
                     if (mode === 'hide' && host) {
                         host.hidden = true;
                         return;

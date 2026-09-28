@@ -6,6 +6,7 @@ namespace Plugin\startseite_plus\Portlets\Common;
 
 use JTL\OPC\InputType;
 use JTL\OPC\PortletInstance;
+use Plugin\startseite_plus\Countdown\CountdownService;
 
 /**
  * Gemeinsame Hilfsfunktionen und Property-Bausteine für alle Startseite-Plus-Portlets.
@@ -53,6 +54,36 @@ trait PortletHelper
     public function getCommonUrl(): string
     {
         return \dirname(\rtrim($this->getBaseUrl(), '/')) . '/Common/';
+    }
+
+    /**
+     * Absoluter Pfad des gemeinsamen Countdown-Snippets (Portlets/Common/countdown.tpl),
+     * ohne "file:"-Präfix – so wie JTL selbst Portlet-Templates per Pfad lädt.
+     */
+    public function getCountdownTemplate(): string
+    {
+        return \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/countdown.tpl';
+    }
+
+    /**
+     * Countdowns aus der zentralen Verwaltung als Auswahl (ID => Name). getPropertyDesc() läuft über
+     * getDefaultProps() bei jedem Render, daher pro Request nur eine Abfrage; ohne Datenbank leer.
+     *
+     * @return array<string, string>
+     */
+    protected function managedCountdownOptions(): array
+    {
+        static $options = null;
+        if ($options === null) {
+            try {
+                $options = CountdownService::create()->options('');
+                unset($options['']);
+            } catch (\Throwable) {
+                $options = [];
+            }
+        }
+
+        return $options;
     }
 
     /* ------------------------------------------------------------- Werte lesen */

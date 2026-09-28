@@ -87,30 +87,9 @@ class promoBanner extends Portlet
      */
     private function countdownOptions(): array
     {
-        static $options = null;
-        if ($options !== null) {
-            return $options;
-        }
-        $options = ['' => \__('Kein Countdown')];
-        try {
-            $options += CountdownService::create()->options('');
-            unset($options['']);
-            $options = ['' => \__('Kein Countdown')] + $options;
-        } catch (\Throwable) {
-            // ohne Datenbank bleibt nur die Grundauswahl
-        }
-        $options['custom'] = \__('Eigener Endzeitpunkt (Felder unten)');
-
-        return $options;
-    }
-
-    /**
-     * Absoluter Pfad des gemeinsamen Countdown-Snippets (Portlets/Common/countdown.tpl),
-     * ohne "file:"-Präfix – so wie JTL selbst Portlet-Templates per Pfad lädt.
-     */
-    public function getCountdownTemplate(): string
-    {
-        return \dirname(\rtrim($this->getBasePath(), '/')) . '/Common/countdown.tpl';
+        return ['' => \__('Kein Countdown')]
+            + $this->managedCountdownOptions()
+            + ['custom' => \__('Eigener Endzeitpunkt (Felder unten)')];
     }
 
     /**
