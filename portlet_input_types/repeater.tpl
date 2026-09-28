@@ -5,8 +5,12 @@
       useImage     (bool)   Bildauswahl pro Eintrag; gespeichert im Feld "url"
       requireImage (bool)   Einträge ohne Bild werden beim Speichern verworfen
       entryLabel   (string) Bezeichnung eines Eintrags, z. B. "Slide"
-      fields       (array)  Felder je Eintrag: name, label, type (text|textarea|select|checkbox|number|color),
-                            width (Prozent), options (select), help, placeholder, default, maxlength
+      fields       (array)  Felder je Eintrag: name, label, type (text|textarea|select|checkbox|number|color|
+                            coupon|products|hint), width (Prozent), options (select), help, placeholder, default, maxlength,
+                            max (products), emptyText (products),
+                            showIf (['field' => 'type', 'values' => 'deal;promo']: Feld nur zeigen, wenn das
+                            Auswahlfeld "type" desselben Eintrags einen der Werte hat – Werte mit ";" getrennt)
+      imageShowIf  (array)  wie showIf, für die Bildauswahl des Eintrags
 
     Gespeichert wird ein Array von Einträgen: [ ['url' => '…', '<feld>' => '…', …], … ]
     Ein leerer Eintrag (alle Felder leer) wird beim Speichern verworfen.
@@ -36,12 +40,13 @@
             </button>
         </div>
         {if $useImage}
+            {$imgShow = $propdesc.imageShowIf|default:[]}
             {if empty($entry.url)}
                 {$imgUrl = 'opc/gfx/upload-stub.png'}
             {else}
                 {$imgUrl = \JTL\Shop::getURL()|cat:'/'|cat:$smarty.const.STORAGE_OPC|cat:$entry.url}
             {/if}
-            <div class="slide-image-col">
+            <div class="slide-image-col"{if !empty($imgShow)} data-sp-show-field="{$imgShow.field|escape:'html'}" data-sp-show-values="{$imgShow.values|escape:'html'}"{/if}>
                 <div style="background-image: url('{$imgUrl}')" class="slide-image-btn" title="Bild auswählen"
                      onclick="opc.gui.openElFinder(spRepImage_{$propname}.bind(this), 'Bilder')"></div>
                 <input type="hidden" name="{$propname}[#SORT#][url]" value="{$entry.url|default:''|escape:'html'}">
@@ -55,14 +60,27 @@
                 {$flabel = $field.label|default:$fname}
                 {$fval   = $entry[$fname]|default:''}
                 {$iname  = "`$propname`[#SORT#][`$fname`]"}
-                <div class="sp-rep-field" style="flex-basis: {$fwidth}%; max-width: {$fwidth}%">
-                    {if $ftype === 'textarea'}
+                {$fshow  = $field.showIf|default:[]}
+                <div class="sp-rep-field" style="flex-basis: {$fwidth}%; max-width: {$fwidth}%"
+                     {if !empty($fshow)}data-sp-show-field="{$fshow.field|escape:'html'}" data-sp-show-values="{$fshow.values|escape:'html'}"{/if}>
+                    {if $ftype === 'hint'}
+                        {* reiner Hinweistext (help), kein Eingabefeld *}
+                    {elseif $ftype === 'coupon' || $ftype === 'products'}
+                        <label class="sp-rep-label">{$flabel}</label>
+                        <div class="sp-picker" data-sp-picker="{if $ftype === 'coupon'}coupon{else}products{/if}"
+                             data-max="{$field.max|default:4}"
+                             data-empty="{$field.emptyText|default:''|escape:'html'}"
+                             data-placeholder="{$field.placeholder|default:''|escape:'html'}">
+                            <input type="hidden" class="sp-picker-value" name="{$iname}" value="{$fval|escape:'html'}">
+                            <div class="sp-picker-ui"></div>
+                        </div>
+                    {elseif $ftype === 'textarea'}
                         <textarea class="form-control" rows="2" name="{$iname}" placeholder="{$flabel|escape:'html'}"
                                   title="{$flabel|escape:'html'}">{$fval|escape:'html'}</textarea>
                     {elseif $ftype === 'select'}
                         <label class="sp-rep-label">{$flabel}</label>
                         <select class="form-control" name="{$iname}" title="{$flabel|escape:'html'}" onchange="spRepSyncSelect(this)"
-                                data-sp-default="{$field.default|default:''|escape:'html'}">
+                                data-sp-default="{$field.default|default:''|escape:'html'}" data-sp-field="{$fname|escape:'html'}">
                             {$fknown = false}
                             {foreach $field.options|default:[] as $ovalue => $olabel}
                                 {if "$ovalue" === "$fval"}{$fknown = true}{/if}
@@ -98,7 +116,11 @@
     </div>
 {/function}
 
+{include file='./picker-core.tpl'}
+
 <style>
+    .sp-rep-field[hidden], .slide-image-col[hidden] { display: none !important; }
+    .sp-rep-field .sp-picker { margin-bottom: 4px; }
     .sp-rep-fields { display: flex; flex-wrap: wrap; margin: 0 -3px; }
     .sp-rep-field { flex: 1 1 100%; box-sizing: border-box; padding: 0 3px 4px; min-width: 0; }
     .sp-rep-field .form-control { margin: 0; }
@@ -158,6 +180,26 @@
                 }
             });
         };
+        // Felder mit showIf abhängig vom Auswahlfeld (z. B. Slide-Typ) desselben Eintrags ein-/ausblenden
+        window.spRepApplyVisibility = function (entry) {
+            entry.querySelectorAll('[data-sp-show-field]').forEach(function (node) {
+                var ctrl = entry.querySelector('select[data-sp-field="' + node.getAttribute('data-sp-show-field') + '"]');
+                var values = (node.getAttribute('data-sp-show-values') || '').split(';');
+                node.hidden = !!ctrl && values.indexOf(ctrl.value) === -1;
+            });
+        };
+        window.spRepInitEntry = function (entry, force) {
+            window.spRepApplyVisibility(entry);
+            if (window.spPicker) {
+                window.spPicker.initAll(entry, force);
+            }
+        };
+        document.addEventListener('change', function (event) {
+            var entry = event.target.closest && event.target.closest('.sp-rep-entry');
+            if (entry && event.target.matches('select[data-sp-field]')) {
+                window.spRepApplyVisibility(entry);
+            }
+        });
         window.spRepSyncEntry = function (entry) {
             entry.querySelectorAll('input[type=text], input[type=number], input[type=hidden]').forEach(window.spRepSyncInput);
             entry.querySelectorAll('textarea').forEach(function (textarea) {
@@ -175,6 +217,9 @@
             handle: '.btn-slide-mover'
         });
     });
+    $('#{$propname}-entries').children().each(function (i, entry) {
+        window.spRepInitEntry(entry, false);
+    });
 
     function spRepImage_{$propname}(file)
     {
@@ -185,7 +230,9 @@
 
     function spRepAdd_{$propname}()
     {
-        $('#{$propname}-entries').append($('#{$propname}-blueprint').children().clone());
+        let entry = $('#{$propname}-blueprint').children().clone();
+        $('#{$propname}-entries').append(entry);
+        window.spRepInitEntry(entry[0], true);
         let container = $('#{$propname}-container')[0];
         container.scrollTo(0, container.scrollHeight);
     }
@@ -199,7 +246,10 @@
     {
         let entry = $(btn).closest('.sp-rep-entry');
         window.spRepSyncEntry(entry[0]);
-        entry.clone().insertAfter(entry);
+        let copy = entry.clone();
+        copy.insertAfter(entry);
+        // Picker-Oberflächen kommen ohne Event-Handler mit – aus dem Wert neu aufbauen
+        window.spRepInitEntry(copy[0], true);
     }
 
     function spRepIsEmpty_{$propname}(entry)

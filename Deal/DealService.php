@@ -234,7 +234,7 @@ class DealService
      * SQL-Bedingung für Kupons, die sich für öffentliche Banner eignen: keine Einmal-Codes (z. B. Newsletter-Kupons),
      * keine auf Kunden beschränkten Kupons und keine Massenerstellung. JTL markiert Massenkupons nicht, legt aber
      * alle Codes einer Serie mit demselben Namen an – Namen, die mehrfach vorkommen, gelten daher als Serie.
-     * Nutzt den Parameter :seriesType (= Kupon::TYPE_STANDARD).
+     * Nutzt den Parameter :seriesType (= Kupon::TYPE_STANDARD). Gilt für Kupon-Picker (Deal-Banner, Deal-Slides).
      */
     private const PUBLIC_COUPON_SQL = ' AND nVerwendungen != 1
         AND (cKunden = \'-1\' OR cKunden = \'\')
@@ -296,48 +296,6 @@ class DealService
         }
 
         return \array_map(self::couponRow(...), $rows);
-    }
-
-    /**
-     * Kupons als Auswahlliste (Code => Beschriftung) für Select-Felder, z. B. Deal-Slides im Hero-Slider.
-     * Nur Standardkupons mit Code ohne Einmal-, Kunden- und Massenkupons, die neuesten zuerst; höchstens $limit Einträge.
-     *
-     * @return array<string, string>
-     */
-    public function couponOptions(int $limit = 200): array
-    {
-        try {
-            $rows = $this->db->getObjects(
-                'SELECT kKupon, cName, cCode, fWert, cWertTyp, dGueltigAb, dGueltigBis, cAktiv,
-                        nVerwendungen, nVerwendungenBisher, cArtikel
-                   FROM tkupon
-                  WHERE cKuponTyp = :type AND cCode != \'\'' . self::PUBLIC_COUPON_SQL . '
-                  ORDER BY kKupon DESC
-                  LIMIT ' . \max(1, $limit),
-                ['type' => Kupon::TYPE_STANDARD, 'seriesType' => Kupon::TYPE_STANDARD]
-            );
-        } catch (\Throwable $e) {
-            $this->logError($e);
-
-            return [];
-        }
-        $labels = [
-            'inactive' => 'inaktiv',
-            'expired'  => 'abgelaufen',
-            'upcoming' => 'noch nicht gültig',
-            'used'     => 'aufgebraucht',
-        ];
-        $options = [];
-        foreach (\array_map(self::couponRow(...), $rows) as $coupon) {
-            $label = $coupon['code'] . ' · ' . $coupon['name'] . ' (' . $coupon['value']
-                . ($coupon['until'] !== '' ? ', bis ' . $coupon['until'] : '') . ')';
-            if (isset($labels[$coupon['state']])) {
-                $label .= ' – ' . $labels[$coupon['state']];
-            }
-            $options[$coupon['code']] = $label;
-        }
-
-        return $options;
     }
 
     /**

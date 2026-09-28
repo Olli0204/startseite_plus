@@ -33,9 +33,15 @@ class sliderPlus extends Portlet
         'link'   => '',
         'alt'    => '',
         'focus'  => 'center',
-        'deal'    => '',
-        'deal-bg' => 'tint',
+        'type'     => '',
+        'deal'     => '',
+        'products' => '',
+        'deal-bg'  => 'tint',
     ];
+
+    /** Sichtbarkeit der Slide-Felder je Slide-Typ (Repeater-Option showIf) */
+    private const SHOW_DEAL  = ['field' => 'type', 'values' => 'deal'];
+    private const SHOW_IMAGE = ['field' => 'type', 'values' => 'image'];
 
     public function getButtonHtml(): string
     {
@@ -46,6 +52,20 @@ class sliderPlus extends Portlet
     {
         // Version 1.x: "name" war die HTML-ID, "color" die Hover-Farbe
         $this->migrateLegacyProps($instance);
+        // 2.6.x: Slides ohne Typ – mit Kupon als Deal-Slide, sonst als Bild-Slide übernehmen
+        $slides = $instance->getProperty('slides');
+        if (\is_array($slides)) {
+            $changed = false;
+            foreach ($slides as $i => $slide) {
+                if (\is_array($slide) && ($slide['type'] ?? '') === '') {
+                    $slides[$i]['type'] = !empty($slide['deal']) ? 'deal' : 'image';
+                    $changed            = true;
+                }
+            }
+            if ($changed) {
+                $instance->setProperty('slides', $slides);
+            }
+        }
     }
 
     /**
@@ -60,13 +80,21 @@ class sliderPlus extends Portlet
         $deals  = null;
         foreach ($this->getItems($instance, 'slides', self::SLIDE_DEFAULTS) as $slide) {
             $slide['dealView'] = null;
-            if ($slide['deal'] !== '') {
-                $deals ??= DealService::create();
-                $view    = $deals->view($slide['deal'], '', '', [
-                    'kicker' => $slide['kicker'],
-                    'title'  => $slide['title'],
-                    'text'   => $slide['desc'],
-                ]);
+            $isDeal            = $slide['type'] === 'deal' || ($slide['type'] === '' && $slide['deal'] !== '');
+            if ($isDeal) {
+                if ($slide['deal'] === '') {
+                    if (!$isPreview) {
+                        continue;
+                    }
+                    $view = ['found' => false, 'show' => false, 'problems' => ['Bitte einen Kupon auswählen.']];
+                } else {
+                    $deals ??= DealService::create();
+                    $view    = $deals->view($slide['deal'], '', $slide['products'], [
+                        'kicker' => $slide['kicker'],
+                        'title'  => $slide['title'],
+                        'text'   => $slide['desc'],
+                    ]);
+                }
                 if (!$view['show'] && !$isPreview) {
                     continue;
                 }
@@ -95,25 +123,6 @@ class sliderPlus extends Portlet
     public function getExtraJsFiles(): array
     {
         return [$this->getCommonUrl() . 'deal.js?v=' . \rawurlencode($this->getPluginVersion())];
-    }
-
-    /**
-     * Kupon-Auswahl für die Slides; getPropertyDesc() läuft bei jedem Render, daher einmal pro Request.
-     *
-     * @return array<string, string>
-     */
-    private function dealOptions(): array
-    {
-        static $options = null;
-        if ($options === null) {
-            try {
-                $options = DealService::create()->couponOptions();
-            } catch (\Throwable) {
-                $options = [];
-            }
-        }
-
-        return ['' => \__('– kein Deal (normaler Bild-Slide) –')] + $options;
     }
 
     /**
@@ -187,15 +196,51 @@ class sliderPlus extends Portlet
             'slides'           => $this->propRepeater(
                 \__('Slides'),
                 [
+                    [
+                        'name'    => 'type',
+                        'label'   => \__('Slide-Typ'),
+                        'type'    => 'select',
+                        'width'   => 100,
+                        'options' => [
+                            'image' => \__('Bild-Slide – Bild mit Text und Button'),
+                            'deal'  => \__('Deal-Slide – Kupon mit Artikeln und Warenkorb-Button'),
+                        ],
+                        'default' => 'image',
+                    ],
+                    [
+                        'name'   => 'deal',
+                        'label'  => \__('Kupon'),
+                        'type'   => 'coupon',
+                        'width'  => 100,
+                        'showIf' => self::SHOW_DEAL,
+                    ],
+                    [
+                        'name'      => 'products',
+                        'label'     => \__('Artikel (optional)'),
+                        'type'      => 'products',
+                        'width'     => 100,
+                        'max'       => DealService::MAX_PRODUCTS,
+                        'emptyText' => \__('Keine Artikel ausgewählt – es werden die im Kupon hinterlegten Artikel angezeigt.'),
+                        'showIf'    => self::SHOW_DEAL,
+                    ],
                     ['name' => 'title', 'label' => \__('Überschrift'), 'width' => 60],
                     ['name' => 'kicker', 'label' => \__('Kleine Zeile über der Überschrift'), 'width' => 40],
                     ['name' => 'desc', 'label' => \__('Text / Untertitel'), 'type' => 'textarea', 'width' => 100],
-                    ['name' => 'button', 'label' => \__('Button-Text'), 'width' => 40],
+                    [
+                        'name'   => 'deal-hint',
+                        'label'  => '',
+                        'type'   => 'hint',
+                        'width'  => 100,
+                        'help'   => \__('Überschrift, Kicker und Text sind beim Deal-Slide optional – leer werden sie automatisch aus dem Kupon erzeugt. Das Bild ist optional; ohne Bild gilt die Hintergrundfarbe.'),
+                        'showIf' => self::SHOW_DEAL,
+                    ],
+                    ['name' => 'button', 'label' => \__('Button-Text'), 'width' => 40, 'showIf' => self::SHOW_IMAGE],
                     [
                         'name'        => 'link',
                         'label'       => \__('Link (URL)'),
                         'width'       => 60,
                         'placeholder' => \__('Link – ohne Button-Text ist das ganze Bild verlinkt'),
+                        'showIf'      => self::SHOW_IMAGE,
                     ],
                     ['name' => 'alt', 'label' => \__('Alternativtext (SEO)'), 'width' => 60],
                     [
@@ -207,19 +252,10 @@ class sliderPlus extends Portlet
                         'default' => 'center',
                     ],
                     [
-                        'name'    => 'deal',
-                        'label'   => \__('Deal (Kupon)'),
+                        'name'    => 'deal-bg',
+                        'label'   => \__('Hintergrund, wenn kein Bild gewählt ist'),
                         'type'    => 'select',
                         'width'   => 60,
-                        'options' => $this->dealOptions(),
-                        'default' => '',
-                        'help'    => \__('Mit Kupon wird der Slide zur Deal-Karte: Artikel und Rabatt aus dem Kupon, Button „In den Warenkorb“ mit automatischer Code-Einlösung. Überschrift, Kicker und Text oben ersetzen die automatischen Texte. Bild optional.'),
-                    ],
-                    [
-                        'name'    => 'deal-bg',
-                        'label'   => \__('Hintergrund ohne Bild'),
-                        'type'    => 'select',
-                        'width'   => 40,
                         'options' => [
                             'tint'   => \__('Akzentfarbe (sehr hell)'),
                             'light'  => \__('Hellgrau'),
@@ -227,12 +263,13 @@ class sliderPlus extends Portlet
                             'accent' => \__('Akzentfarbe'),
                         ],
                         'default' => 'tint',
+                        'showIf'  => self::SHOW_DEAL,
                     ],
                 ],
                 true,
                 \__('Slide'),
                 false,
-                \__('Empfohlene Bildgröße: mindestens 1920 px breit. Reihenfolge per Drag & Drop. Slides ohne Bild werden nur mit Deal (Kupon) angezeigt.')
+                \__('Empfohlene Bildgröße: mindestens 1920 px breit. Reihenfolge per Drag & Drop. Deal-Slides zeigen eine Karte mit Kupon, Artikeln und Warenkorb-Button.')
             ),
         ];
     }
