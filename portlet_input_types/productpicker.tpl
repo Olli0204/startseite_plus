@@ -55,8 +55,9 @@
     .sp-pp-remove:hover { color: #c0392b; }
     .sp-pp-empty { margin: 0 0 6px; font-size: 12px; color: #6c757d; }
     .sp-pp-searchbox { position: relative; }
-    .sp-pp-searchbox .fa-search { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #9aa3ad; }
-    .sp-pp-searchbox .form-control { padding-left: 30px; }
+    .sp-pp-searchbox .fa-search { position: absolute; left: 12px; top: 50%; z-index: 2; transform: translateY(-50%); color: #9aa3ad; pointer-events: none; }
+    /* Das OPC-Admin-CSS setzt das Padding von .form-control mit höherer Spezifität – daher !important */
+    .sp-pp .sp-pp-searchbox input.form-control { padding-left: 36px !important; }
     .sp-pp-status { margin: 4px 0; font-size: 11px; color: #6c757d; }
     .sp-pp-status:empty { display: none; }
 </style>
