@@ -27,8 +27,10 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 ### Deal-Slides im Hero-Slider (ab 2.6.0)
 - Pro Slide wählt man den **Slide-Typ**: „Bild-Slide“ (wie bisher) oder „Deal-Slide“. Der Editor zeigt je Typ nur die
   passenden Felder; beim Deal-Slide gibt es Kupon- und Artikel-Picker wie im Deal-Banner (ab 2.7.0)
-- Der Deal-Slide zeigt statt der Beschriftung eine Deal-Karte (Artikelbilder, Bundle-Preis, Code mit „Kopieren“,
-  Button „Beide in den Warenkorb“ mit automatischer Einlösung); ohne gewählte Artikel gelten die Artikel des Kupons
+- Der Deal-Slide zeigt statt der Beschriftung eine Deal-Karte mit möglichst vielen Infos: Artikel mit Bild, Name,
+  Variante und Einzelpreis, Bundle-Preis, „Du sparst …“, Gültigkeit und Code; ohne gewählte Artikel gelten die des Kupons
+- Button (ab 2.9.0): verlinkt auf eine per Kategorie-Picker gewählte Kategorie (z. B. die Aktionsseite mit Deal-Banner)
+  oder einen eigenen Link; Text frei wählbar, Standard „Zur Aktion“. Ohne Ziel: „In den Warenkorb“ mit Code-Einlösung
 - Überschrift, Kicker und Text des Slides ersetzen die automatischen Texte; die Karte steht an der Textposition des Sliders
 - Bild optional: ohne Bild bekommt der Slide eine Hintergrundfarbe und das Seitenverhältnis des ersten Bild-Slides
   (ab 2.8.0; ohne Bild-Slides 21:9, mobil 4:3), bei festem Seitenverhältnis dieses
@@ -106,6 +108,8 @@ CSS-Klasse, Ausblenden je Breakpoint) und **Animation** (WOW.js-Einblendungen).
 - `portlet_input_types/picker-core.tpl` – gemeinsamer Kern (JS/CSS) von Kupon- und Artikel-Picker, auch als Repeater-Feldtypen
   `coupon` / `products`. Der Repeater kennt außerdem `hint` (Hinweistext) und `showIf` (Feld nur bei bestimmtem Wert eines
   Auswahlfelds im selben Eintrag zeigen).
+- Kategorie-Picker: Repeater-Feldtyp `category` (Admin-IO `startseitePlusCategorySearch`, Wert = Kategorie-ID,
+  Anzeige mit Pfad „Männer › Zubehör“); die Shop-URL baut `DealService::categoryUrl()` aus `tseo` (Fallback `?k=ID`).
 - `portlet_input_types/couponpicker.tpl` – Kupon-Picker (Admin-IO `startseitePlusCouponSearch`, gespeichert als Code).
 - `portlet_input_types/productpicker.tpl` – Artikel-Picker (Admin-IO `startseitePlusProductSearch`, gespeichert als `"101;102"`).
 - `portlet_input_types/repeater.tpl` – generischer Listen-Editor (Bild + beliebige Felder: text, textarea, select,

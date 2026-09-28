@@ -6,7 +6,7 @@
       requireImage (bool)   Einträge ohne Bild werden beim Speichern verworfen
       entryLabel   (string) Bezeichnung eines Eintrags, z. B. "Slide"
       fields       (array)  Felder je Eintrag: name, label, type (text|textarea|select|checkbox|number|color|
-                            coupon|products|hint), width (Prozent), options (select), help, placeholder, default, maxlength,
+                            coupon|products|category|hint), width (Prozent), options (select), help, placeholder, default, maxlength,
                             max (products), emptyText (products),
                             showIf (['field' => 'type', 'values' => 'deal;promo']: Feld nur zeigen, wenn das
                             Auswahlfeld "type" desselben Eintrags einen der Werte hat – Werte mit ";" getrennt)
@@ -65,9 +65,9 @@
                      {if !empty($fshow)}data-sp-show-field="{$fshow.field|escape:'html'}" data-sp-show-values="{$fshow.values|escape:'html'}"{/if}>
                     {if $ftype === 'hint'}
                         {* reiner Hinweistext (help), kein Eingabefeld *}
-                    {elseif $ftype === 'coupon' || $ftype === 'products'}
+                    {elseif $ftype === 'coupon' || $ftype === 'products' || $ftype === 'category'}
                         <label class="sp-rep-label">{$flabel}</label>
-                        <div class="sp-picker" data-sp-picker="{if $ftype === 'coupon'}coupon{else}products{/if}"
+                        <div class="sp-picker" data-sp-picker="{$ftype}"
                              data-max="{$field.max|default:4}"
                              data-empty="{$field.emptyText|default:''|escape:'html'}"
                              data-placeholder="{$field.placeholder|default:''|escape:'html'}">

@@ -56,6 +56,12 @@ class Bootstrap extends Bootstrapper
                         => DealService::create()->searchCoupons($query, $exact)
                 );
             }
+            if (\is_object($io) && !$io->exists(DealService::ADMIN_CATEGORY_FUNCTION)) {
+                $io->register(
+                    DealService::ADMIN_CATEGORY_FUNCTION,
+                    static fn(mixed $query = ''): array => DealService::create()->searchCategories($query)
+                );
+            }
         });
     }
 
