@@ -13,7 +13,7 @@
     {if $isPreview}
         <div class="sp-placeholder" style="{$instance->getStyleString()}">
             <i class="fas fa-tags"></i>
-            <span>Deal-Banner – bitte Kupon-Code eintragen</span>
+            <span>Deal-Banner – bitte Kupon auswählen</span>
         </div>
     {/if}
 {elseif !$deal.show && !$isPreview}
