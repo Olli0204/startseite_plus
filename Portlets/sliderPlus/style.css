@@ -118,8 +118,15 @@
 /* Slider mit Deal-Slide: alle Slides gleich hoch (Format des ersten Bildes) und mit Mindesthöhe,
    damit die Deal-Karte auch bei flachen Bildern Platz hat – Bilder werden dafür zugeschnitten. */
 .sp-hero--has-deal .sp-hero__media { min-height: 16rem; }
+/* Bild absolut über die ganze Fläche: height: 100% greift in Safari/WebKit nicht, wenn die Höhe aus min-height
+   kommt (Bild blieb bei 3:2, darunter ein schwarzer Balken). Die Höhe gibt hier immer aspect-ratio + min-height vor. */
 .sp-hero--has-deal .sp-hero__media picture,
-.sp-hero--has-deal .sp-hero__media img { height: 100%; }
+.sp-hero--has-deal .sp-hero__media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
 .sp-hero--has-deal .sp-hero__media img { object-fit: cover; }
 @media (min-width: 768px) {
     .sp-hero--has-deal.sp-hero--aspect-natural .sp-hero__media { aspect-ratio: var(--sp-hero-ratio, 21 / 9); }

@@ -243,7 +243,7 @@ class DealService
 
             return [
                 'id'         => (int)$row->kArtikel,
-                'name'       => (string)$row->cName,
+                'name'       => self::plain($row->cName),
                 'artNr'      => (string)$row->cArtNr,
                 'variations' => (int)$row->nIstVater === 1,
                 'child'      => $isChild,
@@ -296,8 +296,8 @@ class DealService
 
         return \array_map(static fn(object $row): array => [
             'id'   => (int)$row->kKategorie,
-            'name' => (string)$row->cName,
-            'path' => \implode(' › ', \array_filter([(string)($row->parent2 ?? ''), (string)($row->parent1 ?? '')])),
+            'name' => self::plain($row->cName),
+            'path' => \implode(' › ', \array_filter([self::plain($row->parent2 ?? ''), self::plain($row->parent1 ?? '')])),
             'seo'  => (string)($row->cSeo ?? ''),
         ], $rows);
     }
@@ -364,7 +364,7 @@ class DealService
         $labels = [];
         foreach ($rows as $row) {
             $id            = (int)$row->kEigenschaftKombi;
-            $part          = \trim((string)$row->attribute . ': ' . (string)$row->value, ': ');
+            $part          = \trim(self::plain($row->attribute) . ': ' . self::plain($row->value), ': ');
             $labels[$id]   = isset($labels[$id]) ? $labels[$id] . ' / ' . $part : $part;
         }
 
@@ -462,7 +462,7 @@ class DealService
         return [
             'id'       => (int)$row->kKupon,
             'code'     => (string)$row->cCode,
-            'name'     => (string)$row->cName,
+            'name'     => self::plain($row->cName),
             'value'    => $row->cWertTyp === 'prozent'
                 ? self::formatNumber($value) . ' %'
                 : \number_format($value, \fmod($value, 1.0) === 0.0 ? 0 : 2, ',', '.') . ' €',
@@ -562,7 +562,7 @@ class DealService
             $image    = $product->Bilder[0] ?? null;
             $items[]  = [
                 'id'      => (int)$product->kArtikel,
-                'name'    => (string)$product->cName,
+                'name'    => self::plain($product->cName),
                 'variant' => $variants[(int)($product->kEigenschaftKombi ?? 0)] ?? '',
                 'parent'  => (int)($product->nIstVater ?? 0) === 1,
                 'url'    => (string)($product->cURLFull ?? ''),
@@ -879,6 +879,15 @@ class DealService
             \ENT_QUOTES | \ENT_HTML5,
             'UTF-8'
         );
+    }
+
+    /**
+     * Klartext aus DB-Texten: JTL speichert Namen teils mit HTML-Entities ("V&ouml;lkl"); die Templates escapen
+     * selbst, daher hier dekodieren (sonst erscheint "V&amp;ouml;lkl").
+     */
+    public static function plain(mixed $value): string
+    {
+        return \html_entity_decode(\is_scalar($value) ? (string)$value : '', \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
     }
 
     private static function formatNumber(float $value): string
