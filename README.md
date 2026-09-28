@@ -30,11 +30,13 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Der Deal-Slide zeigt statt der Beschriftung eine Deal-Karte (Artikelbilder, Bundle-Preis, Code mit „Kopieren“,
   Button „Beide in den Warenkorb“ mit automatischer Einlösung); ohne gewählte Artikel gelten die Artikel des Kupons
 - Überschrift, Kicker und Text des Slides ersetzen die automatischen Texte; die Karte steht an der Textposition des Sliders
-- Bild optional: ohne Bild bekommt der Slide eine Hintergrundfarbe („Hintergrund ohne Bild“); bei „Originalhöhe“ gilt dafür 21:9
-  (mobil 4:3), sonst das eingestellte Seitenverhältnis
-- Smartphone: kompakte Karte mit Titel, Preis und Button (ohne Button zusätzlich der Code); Tablet: ohne Artikelbilder
+- Bild optional: ohne Bild bekommt der Slide eine Hintergrundfarbe und das Seitenverhältnis des ersten Bild-Slides
+  (ab 2.8.0; ohne Bild-Slides 21:9, mobil 4:3), bei festem Seitenverhältnis dieses
+- Slider mit Deal-Slide: alle Slides gleich hoch, Mindesthöhe 16rem (mobil 14rem), Bilder werden dafür zugeschnitten
+- Die Karte richtet sich nach dem Platz im Slide (CSS Container Queries): hoch → senkrechte Karte, breit und flach →
+  waagerechte Leiste (Artikel | Titel und Preis | Button), schmal → kompakte Karte (Titel, Preis, Button); Browser ohne
+  Container Queries nutzen die Darstellung nach Bildschirmbreite
 - Ungültige Kupons blenden den Slide im Shop aus; läuft der Kupon während des Besuchs ab, entfernt das Skript den Slide
-- Empfehlung: festes Seitenverhältnis ab 21:9, bei sehr flachen Slidern (3:1, 4:1) wird die Karte auf Desktop knapp
 
 ### Kategorie-Kacheln
 - 2/3/4 Spalten (Desktop), 1/2 Spalten (Smartphone), festes Seitenverhältnis oder Originalhöhe

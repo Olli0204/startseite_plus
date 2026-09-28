@@ -106,12 +106,23 @@
 .sp-hero__text { margin: 0 0 1rem; font-size: clamp(.9rem, 1.4vw, 1.15rem); opacity: .95; }
 .sp-hero__btn { margin-top: .25rem; }
 
-/* Deal-Slides: Karte statt Beschriftung, optional ohne Bild (Hintergrundfarbe) */
-.sp-hero__media--blank { aspect-ratio: 21 / 9; }
-.sp-hero__caption--deal { padding: 3% 8%; }
+/* Deal-Slides: Karte statt Beschriftung, optional ohne Bild (Hintergrundfarbe).
+   Slides ohne Bild übernehmen das Seitenverhältnis des ersten Bild-Slides (--sp-hero-ratio, aus PHP). */
+.sp-hero__media--blank { aspect-ratio: var(--sp-hero-ratio, 21 / 9); }
+.sp-hero__caption--deal { padding: 3% 8%; container: spdeal / size; }
 @media (min-width: 768px) {
     .sp-hero--cap-left  .sp-hero__caption--deal,
     .sp-hero--cap-right .sp-hero__caption--deal { padding-left: 9%; padding-right: 9%; }
+}
+
+/* Slider mit Deal-Slide: alle Slides gleich hoch (Format des ersten Bildes) und mit Mindesthöhe,
+   damit die Deal-Karte auch bei flachen Bildern Platz hat – Bilder werden dafür zugeschnitten. */
+.sp-hero--has-deal .sp-hero__media { min-height: 16rem; }
+.sp-hero--has-deal .sp-hero__media picture,
+.sp-hero--has-deal .sp-hero__media img { height: 100%; }
+.sp-hero--has-deal .sp-hero__media img { object-fit: cover; }
+@media (min-width: 768px) {
+    .sp-hero--has-deal.sp-hero--aspect-natural .sp-hero__media { aspect-ratio: var(--sp-hero-ratio, 21 / 9); }
 }
 
 /* Navigation */
@@ -144,9 +155,11 @@
 .sp-hero .carousel-control-next:hover .carousel-control-next-icon { background-color: var(--sp-accent, var(--primary, #FFA54F)); }
 
 @media (max-width: 767.98px) {
-    .sp-hero--m-aspect-same.sp-hero--aspect-natural .sp-hero__media--blank { aspect-ratio: 4 / 3; }
+    .sp-hero--m-aspect-same.sp-hero--aspect-natural .sp-hero__media--blank { aspect-ratio: var(--sp-hero-ratio, 4 / 3); }
+    .sp-hero--has-deal.sp-hero--m-aspect-same.sp-hero--aspect-natural .sp-hero__media { aspect-ratio: var(--sp-hero-ratio, 4 / 3); }
+    .sp-hero--has-deal .sp-hero__media { min-height: 14rem; }
     .sp-hero__caption { padding: 5% 11% 13%; }
-    .sp-hero__caption--deal { padding: 4% 14% 12%; }
+    .sp-hero__caption--deal { padding: .75rem 13% 2rem; }
     .sp-hero--cap-bottom-left .sp-hero__caption,
     .sp-hero--cap-bottom-center .sp-hero__caption { padding-bottom: 14%; }
     .sp-hero__caption-inner { text-shadow: 0 1px 8px rgba(0, 0, 0, .6); }

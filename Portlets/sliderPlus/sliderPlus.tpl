@@ -19,7 +19,8 @@
 {$widthMode  = $portlet->getKey($instance, 'width', 'full')}
 {$wrap       = !$inContainer && $widthMode === 'container'}
 {$fullBleed  = $inContainer && $widthMode === 'full'}
-{$rootStyle  = $portlet->rootStyle($instance, ['accent' => $portlet->getAccent($instance), 'interval' => $interval|cat:'ms'])}
+{$hasDeal    = $portlet->hasDealSlide($slides)}
+{$rootStyle  = $portlet->rootStyle($instance, ['accent' => $portlet->getAccent($instance), 'interval' => $interval|cat:'ms', 'hero-ratio' => $portlet->getHeroRatio($instance, $slides)])}
 {$dealTpl    = $portlet->getCommonTemplate('deal-hero.tpl')}
 
 {if $count === 0}
@@ -30,7 +31,7 @@
 {else}
     {if $wrap}<div class="container">{/if}
     <div id="{$uid}"
-         class="sp-hero carousel slide sp-hero--aspect-{$aspect} sp-hero--m-aspect-{$aspectM} sp-hero--overlay-{$overlay} sp-hero--cap-{$capPos} sp-hero--capstyle-{$capStyle} sp-hero--size-{$titleSize}{if $transition !== 'slide'} carousel-fade{/if}{if $transition === 'kenburns'} sp-hero--kenburns{/if}{if $fullBleed} sp-full-bleed{/if} {$portlet->rootClasses($instance)}"
+         class="sp-hero carousel slide sp-hero--aspect-{$aspect} sp-hero--m-aspect-{$aspectM} sp-hero--overlay-{$overlay} sp-hero--cap-{$capPos} sp-hero--capstyle-{$capStyle} sp-hero--size-{$titleSize}{if $transition !== 'slide'} carousel-fade{/if}{if $transition === 'kenburns'} sp-hero--kenburns{/if}{if $hasDeal} sp-hero--has-deal{/if}{if $fullBleed} sp-full-bleed{/if} {$portlet->rootClasses($instance)}"
          style="{$rootStyle}"
          {$instance->getAnimationDataAttributeString()}
          {if !$isPreview && $autoplay && $count > 1}data-ride="carousel"{/if}
