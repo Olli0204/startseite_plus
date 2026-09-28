@@ -76,9 +76,10 @@
     var onAdd = function (button) {
         var deal = button.closest('[data-sp-deal]');
         var ids = (button.getAttribute('data-sp-deal-add') || '').split(',').filter(Boolean);
+        var token = button.getAttribute('data-sp-token') || '';
         var request = {
             name: 'startseitePlusDeal',
-            params: [ids, button.getAttribute('data-sp-code') || '', button.getAttribute('data-sp-token') || '']
+            params: [ids, button.getAttribute('data-sp-code') || '', token]
         };
         button.classList.add('is-loading');
         showMessage(deal, '');
@@ -86,7 +87,7 @@
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
-            body: 'io=' + encodeURIComponent(JSON.stringify(request))
+            body: 'io=' + encodeURIComponent(JSON.stringify(request)) + '&jtl_token=' + encodeURIComponent(token)
         }).then(function (response) {
             return response.json();
         }).then(function (data) {
@@ -95,8 +96,13 @@
                 return;
             }
             button.classList.remove('is-loading');
+            if (!data || typeof data.ok === 'undefined') {
+                // keine Antwort der Plugin-Funktion (z. B. IO-Fehler) – Details für die Fehlersuche
+                console.error('startseite_plus Deal-Banner: unerwartete IO-Antwort', data);
+            }
             showMessage(deal, (data && data.message) || 'Die Artikel konnten nicht in den Warenkorb gelegt werden.');
-        }).catch(function () {
+        }).catch(function (error) {
+            console.error('startseite_plus Deal-Banner:', error);
             button.classList.remove('is-loading');
             showMessage(deal, 'Die Artikel konnten nicht in den Warenkorb gelegt werden.');
         });

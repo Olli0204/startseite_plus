@@ -271,15 +271,29 @@ class DealService
         $ids = \is_array($productIDs) ? $productIDs : \explode(',', (string)$productIDs);
         $ids = \array_slice(\array_values(\array_unique(\array_filter(\array_map('intval', $ids)))), 0, self::MAX_PRODUCTS);
 
-        $added = 0;
+        // CartHelper::addToCartCheck() prüft das Token selbst über Form::validateToken() ohne Argument,
+        // also aus $_POST['jtl_token'] – beim IO-Aufruf steht es dort nicht, sonst scheitert jeder Artikel
+        // mit R_MISSING_TOKEN. Das Token ist oben bereits gegen die Session geprüft.
+        $_POST['jtl_token'] = $token;
+
+        $added  = 0;
+        $failed = [];
         foreach ($ids as $id) {
             try {
                 if (CartHelper::addProductIDToCart($id, 1, [], 1)) {
                     ++$added;
+                } else {
+                    $failed[] = $id;
                 }
             } catch (\Throwable $e) {
+                $failed[] = $id;
                 $this->logError($e);
             }
+        }
+        if ($failed !== []) {
+            $this->logError(new \RuntimeException(
+                'Artikel nicht in den Warenkorb gelegt (kArtikel ' . \implode(', ', $failed) . ')'
+            ));
         }
         if ($added === 0) {
             return ['ok' => false, 'redirect' => '', 'message' => $isEn
