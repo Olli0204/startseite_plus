@@ -1,4 +1,4 @@
-/* Startseite Plus – Deal-Banner: Code kopieren, Artikel in den Warenkorb legen und Code einlösen */
+/* Startseite Plus – Deal-Banner und Deal-Slides: Code kopieren, Artikel in den Warenkorb legen und Code einlösen */
 (function () {
     'use strict';
     if (window.spDealInit) {
@@ -108,7 +108,74 @@
         });
     };
 
+    /* Hero-Slider: Deal-Slide entfernen, sobald der Kupon abläuft (ein ausgeblendetes aktives Item
+       würde das Bootstrap-Karussell anhalten), inkl. Punkt-Navigation; ohne Slides bleibt der Slider leer. */
+    var removeDealSlide = function (item) {
+        var carousel = item.closest('.carousel');
+        if (!carousel || !item.parentNode) {
+            return;
+        }
+        var items = Array.prototype.slice.call(carousel.querySelectorAll('.carousel-item'));
+        var index = items.indexOf(item);
+        var wasActive = item.classList.contains('active');
+        var dots = carousel.querySelectorAll('.carousel-indicators li');
+        item.parentNode.removeChild(item);
+        if (dots[index]) {
+            dots[index].parentNode.removeChild(dots[index]);
+        }
+        var rest = carousel.querySelectorAll('.carousel-item');
+        if (!rest.length) {
+            carousel.hidden = true;
+            return;
+        }
+        Array.prototype.forEach.call(carousel.querySelectorAll('.carousel-indicators li'), function (dot, i) {
+            dot.setAttribute('data-slide-to', i);
+        });
+        if (wasActive) {
+            rest[0].classList.add('active');
+            var firstDot = carousel.querySelector('.carousel-indicators li');
+            if (firstDot) {
+                firstDot.classList.add('active');
+            }
+        }
+        if (rest.length < 2) {
+            carousel.querySelectorAll('.carousel-indicators, .carousel-control-prev, .carousel-control-next')
+                .forEach(function (el) { el.hidden = true; });
+        }
+    };
+
+    var watchDealSlides = function () {
+        document.querySelectorAll('.carousel-item[data-sp-deal-until]:not([data-sp-deal-watch])').forEach(function (item) {
+            item.setAttribute('data-sp-deal-watch', '1');
+            var until = parseInt(item.getAttribute('data-sp-deal-until'), 10) * 1000;
+            if (!until) {
+                return;
+            }
+            var wait = until - Date.now();
+            if (wait <= 0) {
+                removeDealSlide(item);
+            } else if (wait < 2147483647) {
+                setTimeout(function () { removeDealSlide(item); }, wait);
+            }
+        });
+    };
+
+    /* Karussell anhalten, solange man in einer Deal-Karte tippt oder per Tastatur darin ist */
+    var pauseCarousel = function (event) {
+        var card = event.target.closest && event.target.closest('.carousel .sp-deal');
+        if (card && window.jQuery) {
+            window.jQuery(card.closest('.carousel')).carousel('pause');
+        }
+    };
+
     window.spDealInit = true;
+    document.addEventListener('focusin', pauseCarousel);
+    document.addEventListener('touchstart', pauseCarousel, {passive: true});
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', watchDealSlides);
+    } else {
+        watchDealSlides();
+    }
     document.addEventListener('click', function (event) {
         var copy = event.target.closest('.sp-deal__copy[data-sp-copy]');
         if (copy) {

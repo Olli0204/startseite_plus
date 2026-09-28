@@ -269,34 +269,82 @@ class DealService
             return [];
         }
 
-        return \array_map(static function (object $row): array {
-            $value = (float)$row->fWert;
-            $until = self::timestamp($row->dGueltigBis);
-            $from  = self::timestamp($row->dGueltigAb);
-            $state = 'active';
-            if ($row->cAktiv !== 'Y') {
-                $state = 'inactive';
-            } elseif ($until !== null && $until < \time()) {
-                $state = 'expired';
-            } elseif ($from !== null && $from > \time()) {
-                $state = 'upcoming';
-            } elseif ((int)$row->nVerwendungen > 0 && (int)$row->nVerwendungen <= (int)$row->nVerwendungenBisher) {
-                $state = 'used';
-            }
-            $articles = \array_filter(\array_map('trim', \explode(';', (string)$row->cArtikel)));
+        return \array_map(self::couponRow(...), $rows);
+    }
 
-            return [
-                'id'       => (int)$row->kKupon,
-                'code'     => (string)$row->cCode,
-                'name'     => (string)$row->cName,
-                'value'    => $row->cWertTyp === 'prozent'
-                    ? self::formatNumber($value) . ' %'
-                    : \number_format($value, \fmod($value, 1.0) === 0.0 ? 0 : 2, ',', '.') . ' €',
-                'until'    => $until !== null ? \date('d.m.Y', $until) : '',
-                'state'    => $state,
-                'articles' => \count($articles),
-            ];
-        }, $rows);
+    /**
+     * Kupons als Auswahlliste (Code => Beschriftung) für Select-Felder, z. B. Deal-Slides im Hero-Slider.
+     * Nur Standardkupons mit Code, die neuesten zuerst; höchstens $limit Einträge.
+     *
+     * @return array<string, string>
+     */
+    public function couponOptions(int $limit = 200): array
+    {
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT kKupon, cName, cCode, fWert, cWertTyp, dGueltigAb, dGueltigBis, cAktiv,
+                        nVerwendungen, nVerwendungenBisher, cArtikel
+                   FROM tkupon
+                  WHERE cKuponTyp = :type AND cCode != \'\'
+                  ORDER BY kKupon DESC
+                  LIMIT ' . \max(1, $limit),
+                ['type' => Kupon::TYPE_STANDARD]
+            );
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+        $labels = [
+            'inactive' => 'inaktiv',
+            'expired'  => 'abgelaufen',
+            'upcoming' => 'noch nicht gültig',
+            'used'     => 'aufgebraucht',
+        ];
+        $options = [];
+        foreach (\array_map(self::couponRow(...), $rows) as $coupon) {
+            $label = $coupon['code'] . ' · ' . $coupon['name'] . ' (' . $coupon['value']
+                . ($coupon['until'] !== '' ? ', bis ' . $coupon['until'] : '') . ')';
+            if (isset($labels[$coupon['state']])) {
+                $label .= ' – ' . $labels[$coupon['state']];
+            }
+            $options[$coupon['code']] = $label;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function couponRow(object $row): array
+    {
+        $value = (float)$row->fWert;
+        $until = self::timestamp($row->dGueltigBis);
+        $from  = self::timestamp($row->dGueltigAb);
+        $state = 'active';
+        if ($row->cAktiv !== 'Y') {
+            $state = 'inactive';
+        } elseif ($until !== null && $until < \time()) {
+            $state = 'expired';
+        } elseif ($from !== null && $from > \time()) {
+            $state = 'upcoming';
+        } elseif ((int)$row->nVerwendungen > 0 && (int)$row->nVerwendungen <= (int)$row->nVerwendungenBisher) {
+            $state = 'used';
+        }
+        $articles = \array_filter(\array_map('trim', \explode(';', (string)$row->cArtikel)));
+
+        return [
+            'id'       => (int)$row->kKupon,
+            'code'     => (string)$row->cCode,
+            'name'     => (string)$row->cName,
+            'value'    => $row->cWertTyp === 'prozent'
+                ? self::formatNumber($value) . ' %'
+                : \number_format($value, \fmod($value, 1.0) === 0.0 ? 0 : 2, ',', '.') . ' €',
+            'until'    => $until !== null ? \date('d.m.Y', $until) : '',
+            'state'    => $state,
+            'articles' => \count($articles),
+        ];
     }
 
     /**
@@ -423,6 +471,76 @@ class DealService
             'token'       => self::token(),
             'lang'        => $isEn ? 'en' : 'de',
         ];
+    }
+
+    /**
+     * Anzeige-Daten inkl. fertiger Texte für Deal-Banner und Deal-Slides (Hero-Slider).
+     * Optionen: kicker, title, text, btnLabel (leer = automatisch), showButton, showPrices, showValidity.
+     *
+     * @param array<string, mixed> $opts
+     * @return array<string, mixed>
+     */
+    public function view(string $code, string $numbers = '', string $ids = '', array $opts = []): array
+    {
+        try {
+            $deal = $this->buildView($code, $numbers, $ids);
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [
+                'found'    => false,
+                'show'     => false,
+                'problems' => ['Der Kupon konnte nicht geladen werden: ' . $e->getMessage()],
+            ];
+        }
+        $isEn = $deal['lang'] === 'en';
+
+        $deal['kicker'] = (string)($opts['kicker'] ?? '');
+        $deal['title']  = (string)($opts['title'] ?? '');
+        if ($deal['title'] === '') {
+            $deal['title'] = self::autoTitle($deal, $isEn);
+        }
+        $deal['text']     = (string)($opts['text'] ?? '');
+        $deal['btnLabel'] = (string)($opts['btnLabel'] ?? '');
+        if ($deal['btnLabel'] === '') {
+            $deal['btnLabel'] = match (true) {
+                $deal['count'] === 2 => $isEn ? 'Add both to cart' : 'Beide in den Warenkorb',
+                $deal['count'] === 1 => $isEn ? 'Add to cart' : 'In den Warenkorb',
+                default              => $isEn ? 'Add all to cart' : 'Alle in den Warenkorb',
+            };
+        }
+        $deal['canAdd']      = $deal['buyable'] && ($opts['showButton'] ?? true);
+        $deal['showPrices']  = $deal['hasPrices'] && ($opts['showPrices'] ?? true);
+        $deal['showValid']   = $deal['validLabel'] !== '' && ($opts['showValidity'] ?? true);
+        $deal['codeLabel']   = $isEn ? 'Your code' : 'Dein Code';
+        $deal['withCode']    = $isEn ? 'with code' : 'mit Code';
+        $deal['insteadOf']   = $isEn ? 'instead of' : 'statt';
+        $deal['copyLabel']   = $isEn ? 'Copy' : 'Kopieren';
+        $deal['copiedLabel'] = $isEn ? 'Copied' : 'Kopiert';
+        $deal['autoHint']    = $deal['canAdd']
+            ? ($isEn ? 'The code is applied automatically.' : 'Der Code wird automatisch eingelöst.')
+            : ($isEn ? 'Enter the code in your cart.' : 'Code im Warenkorb eingeben.');
+        $deal['countdown']   = null;
+
+        return $deal;
+    }
+
+    /**
+     * @param array<string, mixed> $deal
+     */
+    private static function autoTitle(array $deal, bool $isEn): string
+    {
+        $discount = (string)$deal['discount'];
+        if ($deal['count'] >= 2) {
+            return $isEn
+                ? 'Buy together and save an extra ' . $discount
+                : 'Zusammen kaufen und ' . $discount . ' extra sparen';
+        }
+        if ($discount === '') {
+            return '';
+        }
+
+        return $isEn ? 'Save ' . $discount . ' with your code' : $discount . ' Rabatt mit deinem Code';
     }
 
     /**

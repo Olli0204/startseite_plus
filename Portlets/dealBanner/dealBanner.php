@@ -58,66 +58,25 @@ class dealBanner extends Portlet
         if ($code === '') {
             return null;
         }
-        try {
-            $deal = DealService::create()->buildView(
-                $code,
-                $this->getString($instance, 'products'),
-                $this->getString($instance, 'product-ids')
-            );
-        } catch (\Throwable $e) {
-            return [
-                'show'     => false,
-                'problems' => ['Der Kupon konnte nicht geladen werden: ' . $e->getMessage()],
-            ];
+        $deal = DealService::create()->view(
+            $code,
+            $this->getString($instance, 'products'),
+            $this->getString($instance, 'product-ids'),
+            [
+                'kicker'       => $this->getString($instance, 'kicker'),
+                'title'        => $this->getString($instance, 'title'),
+                'text'         => $this->getString($instance, 'text'),
+                'btnLabel'     => $this->getString($instance, 'btn-label'),
+                'showButton'   => $this->isTrue($instance, 'show-button'),
+                'showPrices'   => $this->isTrue($instance, 'show-prices'),
+                'showValidity' => $this->isTrue($instance, 'show-validity'),
+            ]
+        );
+        if (!empty($deal['found'])) {
+            $deal['countdown'] = $this->getCountdown($instance, $deal['validUntil']);
         }
-        $isEn = $deal['lang'] === 'en';
-
-        $deal['kicker'] = $this->getString($instance, 'kicker');
-        $deal['title']  = $this->getString($instance, 'title');
-        if ($deal['title'] === '') {
-            $deal['title'] = $this->autoTitle($deal, $isEn);
-        }
-        $deal['text']     = $this->getString($instance, 'text');
-        $deal['btnLabel'] = $this->getString($instance, 'btn-label');
-        if ($deal['btnLabel'] === '') {
-            $deal['btnLabel'] = match (true) {
-                $deal['count'] === 2 => $isEn ? 'Add both to cart' : 'Beide in den Warenkorb',
-                $deal['count'] === 1 => $isEn ? 'Add to cart' : 'In den Warenkorb',
-                default              => $isEn ? 'Add all to cart' : 'Alle in den Warenkorb',
-            };
-        }
-        $deal['canAdd']     = $deal['buyable'] && $this->isTrue($instance, 'show-button');
-        $deal['showPrices'] = $deal['hasPrices'] && $this->isTrue($instance, 'show-prices');
-        $deal['showValid']  = $deal['validLabel'] !== '' && $this->isTrue($instance, 'show-validity');
-        $deal['codeLabel']  = $isEn ? 'Your code' : 'Dein Code';
-        $deal['withCode']   = $isEn ? 'with code' : 'mit Code';
-        $deal['insteadOf']  = $isEn ? 'instead of' : 'statt';
-        $deal['copyLabel']  = $isEn ? 'Copy' : 'Kopieren';
-        $deal['copiedLabel'] = $isEn ? 'Copied' : 'Kopiert';
-        $deal['autoHint']   = $deal['canAdd']
-            ? ($isEn ? 'The code is applied automatically.' : 'Der Code wird automatisch eingelöst.')
-            : ($isEn ? 'Enter the code in your cart.' : 'Code im Warenkorb eingeben.');
-        $deal['countdown']  = $this->getCountdown($instance, $deal['validUntil']);
 
         return $deal;
-    }
-
-    /**
-     * @param array<string, mixed> $deal
-     */
-    private function autoTitle(array $deal, bool $isEn): string
-    {
-        $discount = (string)$deal['discount'];
-        if ($deal['count'] >= 2) {
-            return $isEn
-                ? 'Buy together and save an extra ' . $discount
-                : 'Zusammen kaufen und ' . $discount . ' extra sparen';
-        }
-        if ($discount === '') {
-            return '';
-        }
-
-        return $isEn ? 'Save ' . $discount . ' with your code' : $discount . ' Rabatt mit deinem Code';
     }
 
     /**
@@ -159,13 +118,21 @@ class dealBanner extends Portlet
     /**
      * @return string[]
      */
+    protected function getSharedCssFiles(): array
+    {
+        return ['deal.css'];
+    }
+
+    /**
+     * @return string[]
+     */
     public function getExtraJsFiles(): array
     {
         $version = '?v=' . \rawurlencode($this->getPluginVersion());
 
         return [
             $this->getCommonUrl() . 'countdown.js' . $version,
-            $this->getBaseUrl() . 'script.js' . $version,
+            $this->getCommonUrl() . 'deal.js' . $version,
         ];
     }
 

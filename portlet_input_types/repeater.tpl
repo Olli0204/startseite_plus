@@ -61,7 +61,8 @@
                                   title="{$flabel|escape:'html'}">{$fval|escape:'html'}</textarea>
                     {elseif $ftype === 'select'}
                         <label class="sp-rep-label">{$flabel}</label>
-                        <select class="form-control" name="{$iname}" title="{$flabel|escape:'html'}" onchange="spRepSyncSelect(this)">
+                        <select class="form-control" name="{$iname}" title="{$flabel|escape:'html'}" onchange="spRepSyncSelect(this)"
+                                data-sp-default="{$field.default|default:''|escape:'html'}">
                             {foreach $field.options|default:[] as $ovalue => $olabel}
                                 <option value="{$ovalue|escape:'html'}" {if "$ovalue" === "$fval"}selected{/if}>{$olabel}</option>
                             {/foreach}
@@ -206,6 +207,12 @@
         if (entry.find('input[type=checkbox]:checked').length > 0) {
             filled = true;
         }
+        // Auswahlfelder zählen, sobald sie vom Standardwert abweichen (z. B. Deal-Slide nur mit Kupon)
+        entry.find('select').each(function (i, el) {
+            if (el.value !== '' && el.value !== (el.getAttribute('data-sp-default') || '')) {
+                filled = true;
+            }
+        });
         return !filled;
     }
 

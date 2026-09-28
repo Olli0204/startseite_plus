@@ -24,6 +24,16 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Ohne Button-Text ist das ganze Bild verlinkt
 - Basis: Bootstrap-4-Carousel aus NOVA, kein zusätzliches JavaScript
 
+### Deal-Slides im Hero-Slider (ab 2.6.0)
+- Pro Slide lässt sich unter **„Deal (Kupon)“** ein Standardkupon wählen; der Slide zeigt dann statt der Beschriftung eine
+  Deal-Karte (Artikelbilder, Bundle-Preis, Code mit „Kopieren“, Button „Beide in den Warenkorb“ mit automatischer Einlösung)
+- Überschrift, Kicker und Text des Slides ersetzen die automatischen Texte; die Karte steht an der Textposition des Sliders
+- Bild optional: ohne Bild bekommt der Slide eine Hintergrundfarbe („Hintergrund ohne Bild“); bei „Originalhöhe“ gilt dafür 21:9
+  (mobil 4:3), sonst das eingestellte Seitenverhältnis
+- Smartphone: kompakte Karte mit Titel, Preis und Button (ohne Button zusätzlich der Code); Tablet: ohne Artikelbilder
+- Ungültige Kupons blenden den Slide im Shop aus; läuft der Kupon während des Besuchs ab, entfernt das Skript den Slide
+- Empfehlung: festes Seitenverhältnis ab 21:9, bei sehr flachen Slidern (3:1, 4:1) wird die Karte auf Desktop knapp
+
 ### Kategorie-Kacheln
 - 2/3/4 Spalten (Desktop), 1/2 Spalten (Smartphone), festes Seitenverhältnis oder Originalhöhe
 - Hover-Zoom oder Anheben, Verlauf/Abdunkelung, Titelposition und -stil, abgerundete Ecken
@@ -81,6 +91,8 @@ CSS-Klasse, Ausblenden je Breakpoint) und **Animation** (WOW.js-Einblendungen).
 - Jedes Portlet hat ein eigenes `style.css`; beide Dateien werden über `getExtraCssFiles()` mit Versions-Parameter
   eingebunden (auch im OPC-Editor). Es gibt kein Inline-CSS mehr in den Templates.
 - Farben: `--sp-accent` (Akzentfarbe des Portlets) → `--primary` (Template) → `#FFA54F`.
+- `Portlets/Common/deal.css`, `deal.js`, `deal-code.tpl`, `deal-button.tpl`, `deal-hero.tpl` – gemeinsame Deal-Bausteine
+  für Deal-Banner und Deal-Slides (Portlets geben benötigte Common-Stylesheets über `getSharedCssFiles()` an).
 - `portlet_input_types/couponpicker.tpl` – Kupon-Picker (Admin-IO `startseitePlusCouponSearch`, gespeichert als Code).
 - `portlet_input_types/productpicker.tpl` – Artikel-Picker (Admin-IO `startseitePlusProductSearch`, gespeichert als `"101;102"`).
 - `portlet_input_types/repeater.tpl` – generischer Listen-Editor (Bild + beliebige Felder: text, textarea, select,
