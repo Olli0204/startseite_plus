@@ -31,6 +31,11 @@
             {foreach $deal.problems as $problem} {$problem|escape:'html'}{/foreach}
         </div>
     {/if}
+    {if $isPreview && !empty($deal.notes) && $portlet->isTrue($instance, 'show-button')}
+        <div class="sp-deal-warn">
+            {foreach $deal.notes as $note}<div>{$note|escape:'html'}</div>{/foreach}
+        </div>
+    {/if}
     <section class="sp-deal sp-deal--{$layout} sp-deal--r-{$rounded} sp-bg-{$bg}{if $fullBleed} sp-full-bleed{/if} {$portlet->rootClasses($instance)}"
              style="{$rootStyle}"
              data-sp-deal
