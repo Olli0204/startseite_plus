@@ -113,7 +113,7 @@
                 <div class="sp-deal__title">{$deal.title|escape:'html'}</div>
                 {if $deal.count > 0}
                     <div class="sp-deal__names">
-                        {foreach $deal.items as $item}{if !$item@first} + {/if}{$item.name|escape:'html'}{/foreach}
+                        {foreach $deal.items as $item}{if !$item@first} + {/if}{$item.name|escape:'html'}{if $item.variant !== ''} ({$item.variant|escape:'html'}){/if}{/foreach}
                     </div>
                 {/if}
                 {if $deal.text !== ''}<p class="sp-deal__text">{$deal.text|escape:'html'}</p>{/if}

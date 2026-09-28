@@ -58,6 +58,9 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
   Ein bereits gespeicherter Kupon bleibt sichtbar bzw. ausgewählt
 - Artikel-Picker (ab 2.4.0): Suche nach Name, Artikelnummer oder GTIN direkt im OPC, Treffer mit Vorschaubild anklicken,
   Reihenfolge per Ziehen ändern (höchstens 4). Früher eingetragene Artikelnummern werden automatisch übernommen
+- Varianten (ab 2.7.1): Kinderartikel erscheinen eingerückt unter ihrem Vaterartikel, mit Variationswerten
+  („Größe: 158 / Breite: Wide“); die Suche nach dem Vaterartikel listet alle Kinder. Kinderartikel legt der Warenkorb-Button
+  mit ihren Variationswerten ab; Vaterartikel sind markiert („Variante wählen“), weil sie keinen direkten Kauf erlauben
 - Layouts: Bundle-Karte (Artikelbilder, Summe, Bundle-Preis), schlanke Coupon-Leiste, Gutschein-Ticket
 - Button „Beide/Alle in den Warenkorb“: legt alle Artikel per IO-Aufruf (`startseitePlusDeal`) in den Warenkorb und löst den
   Kupon mit der Core-Prüfung (`Kupon::check()`/`accept()`) ein; ein bereits eingelöster anderer Kupon wird nicht ersetzt.

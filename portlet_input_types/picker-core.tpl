@@ -26,6 +26,8 @@
     .sp-pp-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
     .sp-pp-meta { font-size: 11px; color: #6c757d; }
     .sp-pp-badge { margin-left: 4px; padding: 0 4px; border-radius: 3px; background: #fff3cd; color: #7a5200; font-size: 10px; }
+    .sp-pp-badge--variant { background: #e7f3fe; color: #1b5d8f; }
+    .sp-pp-results .sp-pp-item--child { margin-left: 18px; }
     .sp-pp-handle { cursor: move; color: #9aa3ad; }
     .sp-pp-remove { border: 0; background: none; color: #9aa3ad; padding: 0 4px; }
     .sp-pp-remove:hover { color: #c0392b; }
@@ -97,9 +99,14 @@
             li.appendChild(thumb);
             var text = el('span', 'sp-pp-text');
             text.appendChild(el('span', 'sp-pp-name', item.name));
-            var meta = el('span', 'sp-pp-meta', 'Art.-Nr. ' + (item.artNr || '–'));
+            var meta = el('span', 'sp-pp-meta', 'Art.-Nr. ' + (item.artNr || '–') + (item.variant ? ' · ' + item.variant : ''));
             if (item.variations) {
-                meta.appendChild(el('span', 'sp-pp-badge', 'Variationen'));
+                meta.appendChild(el('span', 'sp-pp-badge', 'Vaterartikel – Variante wählen'));
+            } else if (item.child) {
+                meta.appendChild(el('span', 'sp-pp-badge sp-pp-badge--variant', 'Variante'));
+            }
+            if (item.child) {
+                li.classList.add('sp-pp-item--child');
             }
             text.appendChild(meta);
             li.appendChild(text);

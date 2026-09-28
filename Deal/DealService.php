@@ -177,18 +177,26 @@ class DealService
 
     /**
      * Artikelsuche für den Artikel-Picker im OPC-Editor (Admin-IO): Suchtext (Name, Artikelnummer, GTIN)
-     * oder Liste von Artikel-IDs. Variationskinder werden ausgelassen, da sie im Shop nicht einzeln gelistet sind.
+     * oder Liste von Artikel-IDs. Findet Vater- und Kinderartikel (Variationskombinationen); passt der Suchtext
+     * auf einen Vaterartikel, erscheinen auch alle seine Kinder – jeweils direkt unter dem Vater.
      *
      * @return array<int, array<string, mixed>>
      */
     public function searchProducts(mixed $query): array
     {
-        $select = 'SELECT a.kArtikel, a.cName, a.cArtNr, a.cBarcode, a.nIstVater, p.cPfad,
-                       (SELECT s.cSeo FROM tseo s
-                         WHERE s.cKey = \'kArtikel\' AND s.kKey = a.kArtikel
-                         ORDER BY s.kSprache LIMIT 1) AS cSeo
-                   FROM tartikel a
-                   LEFT JOIN tartikelpict p ON p.kArtikel = a.kArtikel AND p.nNr = 1';
+        $select = 'SELECT a.kArtikel, a.cName, a.cArtNr, a.cBarcode, a.nIstVater, a.kVaterArtikel,
+                          a.kEigenschaftKombi, p.cPfad,
+                          (SELECT s.cSeo FROM tseo s
+                            WHERE s.cKey = \'kArtikel\' AND s.kKey = a.kArtikel
+                            ORDER BY s.kSprache LIMIT 1) AS cSeo,
+                          v.cName AS vName, v.cArtNr AS vArtNr, v.cBarcode AS vBarcode, vp.cPfad AS vPfad,
+                          (SELECT s.cSeo FROM tseo s
+                            WHERE s.cKey = \'kArtikel\' AND s.kKey = a.kVaterArtikel
+                            ORDER BY s.kSprache LIMIT 1) AS vSeo
+                     FROM tartikel a
+                     LEFT JOIN tartikelpict p ON p.kArtikel = a.kArtikel AND p.nNr = 1
+                     LEFT JOIN tartikel v ON v.kArtikel = a.kVaterArtikel AND a.kVaterArtikel > 0
+                     LEFT JOIN tartikelpict vp ON vp.kArtikel = a.kVaterArtikel AND vp.nNr = 1';
         try {
             if (\is_array($query)) {
                 $ids = self::parseIds(\implode(';', \array_map('strval', $query)));
@@ -208,11 +216,18 @@ class DealService
                 }
                 $like = '%' . \addcslashes($term, '%_\\') . '%';
                 $rows = $this->db->getObjects(
-                    $select . ' WHERE a.kVaterArtikel = 0
-                          AND (a.cName LIKE :q OR a.cArtNr LIKE :q2 OR a.cBarcode LIKE :q3)
-                        ORDER BY (a.cArtNr = :exact) DESC, a.cName
-                        LIMIT 25',
-                    ['q' => $like, 'q2' => $like, 'q3' => $like, 'exact' => $term]
+                    $select . ' WHERE a.cName LIKE :q OR a.cArtNr LIKE :q2 OR a.cBarcode LIKE :q3
+                           OR a.kVaterArtikel IN (
+                               SELECT parent.kArtikel FROM (
+                                   SELECT kArtikel FROM tartikel
+                                    WHERE nIstVater = 1 AND (cName LIKE :q4 OR cArtNr LIKE :q5)
+                               ) AS parent
+                           )
+                        ORDER BY (a.cArtNr = :exact) DESC,
+                                 COALESCE(NULLIF(a.kVaterArtikel, 0), a.kArtikel) DESC,
+                                 (a.kVaterArtikel > 0), a.cArtNr
+                        LIMIT 60',
+                    ['q' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like, 'q5' => $like, 'exact' => $term]
                 );
             }
         } catch (\Throwable $e) {
@@ -220,14 +235,57 @@ class DealService
 
             return [];
         }
+        $labels = $this->variationLabels(\array_map(static fn(object $row): int => (int)$row->kEigenschaftKombi, $rows));
 
-        return \array_map(fn(object $row): array => [
-            'id'         => (int)$row->kArtikel,
-            'name'       => (string)$row->cName,
-            'artNr'      => (string)$row->cArtNr,
-            'variations' => (int)$row->nIstVater === 1,
-            'thumb'      => $this->thumbUrl($row),
-        ], $rows);
+        return \array_map(function (object $row) use ($labels): array {
+            $isChild = (int)$row->kVaterArtikel > 0;
+
+            return [
+                'id'         => (int)$row->kArtikel,
+                'name'       => (string)$row->cName,
+                'artNr'      => (string)$row->cArtNr,
+                'variations' => (int)$row->nIstVater === 1,
+                'child'      => $isChild,
+                'variant'    => $labels[(int)$row->kEigenschaftKombi] ?? '',
+                'thumb'      => $this->thumbUrl($row),
+            ];
+        }, $rows);
+    }
+
+    /**
+     * Beschriftung der Variationskombinationen, z. B. "Größe: 158 / Farbe: Schwarz" (Standardsprache).
+     *
+     * @param int[] $combiIDs
+     * @return array<int, string> kEigenschaftKombi => Beschriftung
+     */
+    public function variationLabels(array $combiIDs): array
+    {
+        $combiIDs = \array_values(\array_unique(\array_filter($combiIDs, static fn(int $id): bool => $id > 0)));
+        if ($combiIDs === []) {
+            return [];
+        }
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT ekw.kEigenschaftKombi, e.cName AS attribute, ew.cName AS value
+                   FROM teigenschaftkombiwert ekw
+                   JOIN teigenschaft e ON e.kEigenschaft = ekw.kEigenschaft
+                   JOIN teigenschaftwert ew ON ew.kEigenschaftWert = ekw.kEigenschaftWert
+                  WHERE ekw.kEigenschaftKombi IN (' . \implode(',', $combiIDs) . ')
+                  ORDER BY ekw.kEigenschaftKombi, e.nSort, e.cName'
+            );
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+        $labels = [];
+        foreach ($rows as $row) {
+            $id            = (int)$row->kEigenschaftKombi;
+            $part          = \trim((string)$row->attribute . ': ' . (string)$row->value, ': ');
+            $labels[$id]   = isset($labels[$id]) ? $labels[$id] . ' / ' . $part : $part;
+        }
+
+        return $labels;
     }
 
     /**
@@ -336,17 +394,29 @@ class DealService
      */
     private function thumbUrl(object $row): string
     {
-        if (empty($row->cPfad)) {
+        $source = $row;
+        if (empty($row->cPfad) && !empty($row->vPfad)) {
+            // Kinderartikel ohne eigenes Bild: Bild des Vaterartikels (Bild-URL gehört zur ID des Vaters)
+            $source = (object)[
+                'kArtikel' => (int)$row->kVaterArtikel,
+                'cName'    => (string)$row->vName,
+                'cArtNr'   => (string)$row->vArtNr,
+                'cBarcode' => (string)($row->vBarcode ?? ''),
+                'cSeo'     => $row->vSeo ?? null,
+                'cPfad'    => (string)$row->vPfad,
+            ];
+        }
+        if (empty($source->cPfad)) {
             return '';
         }
         try {
             $path = \JTL\Media\Image\Product::getThumb(
                 \JTL\Media\Image::TYPE_PRODUCT,
-                (int)$row->kArtikel,
-                $row,
+                (int)$source->kArtikel,
+                $source,
                 \JTL\Media\Image::SIZE_XS,
                 1,
-                (string)$row->cPfad
+                (string)$source->cPfad
             );
 
             return Shop::getImageBaseURL() . $path;
@@ -360,7 +430,11 @@ class DealService
      */
     public static function isDirectlyBuyable(Artikel $product): bool
     {
-        if ((int)($product->nIstVater ?? 0) === 1 || !empty($product->Variationen) || !empty($product->bHasKonfig)) {
+        if ((int)($product->nIstVater ?? 0) === 1 || !empty($product->bHasKonfig)) {
+            return false;
+        }
+        // Kinderartikel bringen ihre Variationswerte mit (siehe addToCart()); andere Variationen verlangen eine Auswahl
+        if ((int)($product->kEigenschaftKombi ?? 0) === 0 && !empty($product->Variationen)) {
             return false;
         }
 
@@ -391,6 +465,10 @@ class DealService
         $sumNet   = 0.0;
         $sumGross = 0.0;
         $buyable  = $products !== [];
+        $variants = $this->variationLabels(\array_map(
+            static fn(Artikel $product): int => (int)($product->kEigenschaftKombi ?? 0),
+            $products
+        ));
         foreach ($products as $product) {
             $net      = (float)($product->Preise->fVKNetto ?? 0);
             $gross    = (float)($product->Preise->fVKBrutto ?? 0);
@@ -400,8 +478,10 @@ class DealService
             $buyable  = $buyable && $direct;
             $image    = $product->Bilder[0] ?? null;
             $items[]  = [
-                'id'     => (int)$product->kArtikel,
-                'name'   => (string)$product->cName,
+                'id'      => (int)$product->kArtikel,
+                'name'    => (string)$product->cName,
+                'variant' => $variants[(int)($product->kEigenschaftKombi ?? 0)] ?? '',
+                'parent'  => (int)($product->nIstVater ?? 0) === 1,
                 'url'    => (string)($product->cURLFull ?? ''),
                 'image'  => (string)($image->cURLNormal ?? $image->cURLKlein ?? ''),
                 'price'  => self::price($netto ? $net : $gross),
@@ -435,8 +515,11 @@ class DealService
             'show'        => $problems === [],
             'problems'    => $problems,
             'notes'       => \array_values(\array_map(
-                static fn(array $item): string => '„' . $item['name'] . '“ hat Variationen oder ist nicht direkt bestellbar – '
-                    . 'der Warenkorb-Button wird deshalb nicht angezeigt.',
+                static fn(array $item): string => $item['parent']
+                    ? '„' . $item['name'] . '“ ist ein Vaterartikel – wähle im Artikel-Picker die gewünschte Variante '
+                        . '(z. B. Größe), sonst wird der Warenkorb-Button nicht angezeigt.'
+                    : '„' . $item['name'] . '“ ist nicht direkt bestellbar (z. B. ausverkauft oder Konfigurator) – '
+                        . 'der Warenkorb-Button wird deshalb nicht angezeigt.',
                 \array_filter($items, static fn(array $item): bool => !$item['direct'])
             )),
             'discount'    => $discount,
@@ -572,7 +655,7 @@ class DealService
         $failed = [];
         foreach ($ids as $id) {
             try {
-                if (CartHelper::addProductIDToCart($id, 1, [], 1)) {
+                if (CartHelper::addProductIDToCart($id, 1, $this->variationProperties($id), 1)) {
                     ++$added;
                 } else {
                     $failed[] = $id;
@@ -646,6 +729,31 @@ class DealService
         }
 
         return true;
+    }
+
+    /**
+     * Variationswerte eines Kinderartikels für den Warenkorb – wie IOMethods::pushToBasket() über
+     * Product::getSelectedPropertiesForVarCombiArticle(); für normale Artikel leer.
+     *
+     * @return array<mixed>
+     */
+    private function variationProperties(int $productID): array
+    {
+        try {
+            $row = $this->db->getSingleObject(
+                'SELECT kEigenschaftKombi FROM tartikel WHERE kArtikel = :id',
+                ['id' => $productID]
+            );
+            if ($row === null || (int)$row->kEigenschaftKombi <= 0) {
+                return [];
+            }
+
+            return \JTL\Helpers\Product::getSelectedPropertiesForVarCombiArticle($productID);
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
     }
 
     public static function cartUrl(): string
