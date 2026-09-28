@@ -184,9 +184,11 @@
             call(term, false).then(function (list) {
                 if (no !== requestNo) { return; }
                 if (!list.length) {
-                    status.textContent = term ? 'Keine Kupons gefunden.' : 'Es gibt noch keine Standardkupons mit Code.';
+                    status.textContent = term
+                        ? 'Keine Kupons gefunden (Einmal- und Massenkupons sind ausgeblendet).'
+                        : 'Keine passenden Kupons – Einmal- und Massenkupons sind ausgeblendet.';
                 } else {
-                    status.textContent = term ? list.length + ' Treffer – zum Auswählen anklicken' : 'Neueste Kupons – zum Auswählen anklicken';
+                    status.textContent = (term ? list.length + ' Treffer' : 'Neueste Kupons') + ' – zum Auswählen anklicken. Einmal- und Massenkupons sind ausgeblendet.';
                 }
                 renderResults(list);
             }).catch(function (error) {

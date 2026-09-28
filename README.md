@@ -51,6 +51,9 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
   Portlet keine Artikel ausgewählt sind – die Artikel werden aus dem JTL-Kupon gelesen
 - Kupon-Picker (ab 2.5.0): Kupon nach Name oder Code suchen (ohne Suchtext die neuesten), mit Rabatt, Gültigkeit,
   Status (aktiv, abgelaufen, …) und Anzahl hinterlegter Artikel; gespeichert wird weiterhin der Code
+- Ausgeblendet (ab 2.6.1, auch in der Deal-Auswahl des Hero-Sliders): Einmal-Codes (z. B. Newsletter-Kupons),
+  auf einzelne Kunden beschränkte Kupons und Massenerstellungen (erkannt an mehrfach vorkommendem Kupon-Namen).
+  Ein bereits gespeicherter Kupon bleibt sichtbar bzw. ausgewählt
 - Artikel-Picker (ab 2.4.0): Suche nach Name, Artikelnummer oder GTIN direkt im OPC, Treffer mit Vorschaubild anklicken,
   Reihenfolge per Ziehen ändern (höchstens 4). Früher eingetragene Artikelnummern werden automatisch übernommen
 - Layouts: Bundle-Karte (Artikelbilder, Summe, Bundle-Preis), schlanke Coupon-Leiste, Gutschein-Ticket

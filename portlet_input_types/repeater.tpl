@@ -63,9 +63,15 @@
                         <label class="sp-rep-label">{$flabel}</label>
                         <select class="form-control" name="{$iname}" title="{$flabel|escape:'html'}" onchange="spRepSyncSelect(this)"
                                 data-sp-default="{$field.default|default:''|escape:'html'}">
+                            {$fknown = false}
                             {foreach $field.options|default:[] as $ovalue => $olabel}
+                                {if "$ovalue" === "$fval"}{$fknown = true}{/if}
                                 <option value="{$ovalue|escape:'html'}" {if "$ovalue" === "$fval"}selected{/if}>{$olabel}</option>
                             {/foreach}
+                            {if !$fknown && "$fval" !== ''}
+                                {* gespeicherter Wert steht nicht (mehr) in der Auswahl, z. B. ausgeblendeter Kupon – nicht verlieren *}
+                                <option value="{$fval|escape:'html'}" selected>{$fval|escape:'html'} (nicht in der Auswahl)</option>
+                            {/if}
                         </select>
                     {elseif $ftype === 'checkbox'}
                         <label class="sp-rep-check">

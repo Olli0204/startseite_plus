@@ -231,8 +231,25 @@ class DealService
     }
 
     /**
+     * SQL-Bedingung für Kupons, die sich für öffentliche Banner eignen: keine Einmal-Codes (z. B. Newsletter-Kupons),
+     * keine auf Kunden beschränkten Kupons und keine Massenerstellung. JTL markiert Massenkupons nicht, legt aber
+     * alle Codes einer Serie mit demselben Namen an – Namen, die mehrfach vorkommen, gelten daher als Serie.
+     * Nutzt den Parameter :seriesType (= Kupon::TYPE_STANDARD).
+     */
+    private const PUBLIC_COUPON_SQL = ' AND nVerwendungen != 1
+        AND (cKunden = \'-1\' OR cKunden = \'\')
+        AND cName NOT IN (
+            SELECT series.cName FROM (
+                SELECT cName FROM tkupon
+                 WHERE cKuponTyp = :seriesType AND cCode != \'\' AND cName IS NOT NULL
+                 GROUP BY cName HAVING COUNT(*) > 1
+            ) AS series
+        )';
+
+    /**
      * Kupon-Suche für den Kupon-Picker im OPC-Editor (Admin-IO): Suchtext in Name oder Code, leer = die neuesten
-     * Kupons; mit $exact = true genau ein Code (Anzeige des gespeicherten Kupons). Nur Standardkupons mit Code.
+     * Kupons; mit $exact = true genau ein Code (Anzeige des gespeicherten Kupons). Nur Standardkupons mit Code;
+     * Suche und Liste ohne Einmal-, Kunden- und Massenkupons (PUBLIC_COUPON_SQL), der gespeicherte Code immer.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -253,14 +270,23 @@ class DealService
                     'code' => $term,
                 ]);
             } elseif ($term === '') {
-                $rows = $this->db->getObjects($select . ' ORDER BY kKupon DESC LIMIT 15', ['type' => Kupon::TYPE_STANDARD]);
+                $rows = $this->db->getObjects(
+                    $select . self::PUBLIC_COUPON_SQL . ' ORDER BY kKupon DESC LIMIT 15',
+                    ['type' => Kupon::TYPE_STANDARD, 'seriesType' => Kupon::TYPE_STANDARD]
+                );
             } else {
                 $like = '%' . \addcslashes($term, '%_\\') . '%';
                 $rows = $this->db->getObjects(
-                    $select . ' AND (cName LIKE :q OR cCode LIKE :q2)
+                    $select . self::PUBLIC_COUPON_SQL . ' AND (cName LIKE :q OR cCode LIKE :q2)
                               ORDER BY (cCode = :exact) DESC, kKupon DESC
                               LIMIT 25',
-                    ['type' => Kupon::TYPE_STANDARD, 'q' => $like, 'q2' => $like, 'exact' => $term]
+                    [
+                        'type'       => Kupon::TYPE_STANDARD,
+                        'seriesType' => Kupon::TYPE_STANDARD,
+                        'q'          => $like,
+                        'q2'         => $like,
+                        'exact'      => $term,
+                    ]
                 );
             }
         } catch (\Throwable $e) {
@@ -274,7 +300,7 @@ class DealService
 
     /**
      * Kupons als Auswahlliste (Code => Beschriftung) für Select-Felder, z. B. Deal-Slides im Hero-Slider.
-     * Nur Standardkupons mit Code, die neuesten zuerst; höchstens $limit Einträge.
+     * Nur Standardkupons mit Code ohne Einmal-, Kunden- und Massenkupons, die neuesten zuerst; höchstens $limit Einträge.
      *
      * @return array<string, string>
      */
@@ -285,10 +311,10 @@ class DealService
                 'SELECT kKupon, cName, cCode, fWert, cWertTyp, dGueltigAb, dGueltigBis, cAktiv,
                         nVerwendungen, nVerwendungenBisher, cArtikel
                    FROM tkupon
-                  WHERE cKuponTyp = :type AND cCode != \'\'
+                  WHERE cKuponTyp = :type AND cCode != \'\'' . self::PUBLIC_COUPON_SQL . '
                   ORDER BY kKupon DESC
                   LIMIT ' . \max(1, $limit),
-                ['type' => Kupon::TYPE_STANDARD]
+                ['type' => Kupon::TYPE_STANDARD, 'seriesType' => Kupon::TYPE_STANDARD]
             );
         } catch (\Throwable $e) {
             $this->logError($e);
