@@ -180,6 +180,11 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   IO (`startseitePlusNlDealPrices`) ausschließlich für freigeschaltete Sitzungen nach. Deal-Seiten senden
   `X-LiteSpeed-Cache-Control: no-cache`. **Nach dem Update einmal den LiteSpeed-Cache leeren.**
   Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.
+- **Set-Konfigurator (seit 2.14.0):** zu jeder Set-Regel eine Karte mit beiden Artikeln (Bild, Deal-Preis, „statt“-Preis,
+  Größen-/Variantenauswahl, ausverkaufte Größen gesperrt, Auswahl bei mehreren Set-Partnern) und „Set in den Warenkorb –
+  350 €“ – auf der Deal-Seite über der Liste und auf den Artikelseiten von Set-Artikel und Set-Partner unter der Kaufbox
+  (Variante der Seite vorausgewählt). Cache-sicher: Platzhalter im HTML, Karten per IO (`startseitePlusNlDealSets`) nur für
+  freigeschaltete Sitzungen, Warenkorb per `startseitePlusNlDealSetAdd` mit dem Sitzungs-Token aus `startseitePlusDealToken`.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
   `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
 
@@ -211,6 +216,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.14.0
+- Newsletter-Deals: Set-Konfigurator (Board- und Bindungsgröße wählen, beides mit einem Klick in den Warenkorb) auf der
+  Deal-Seite und auf den Artikelseiten der Set-Artikel; `NewsletterDeal/DealSets.php`, `frontend/js/newsletter-deal.js`
 
 ### 2.13.2
 - Fix: „In den Warenkorb“ im Deal-Banner und in Deal-Slides des Hero-Sliders scheiterte auf Seiten aus dem

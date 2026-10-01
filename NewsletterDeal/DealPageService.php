@@ -319,6 +319,9 @@ final class DealPageService
                 ? ($isEn ? 'valid until ' . \date('m/d/Y H:i', $until) : 'gültig bis ' . \date('d.m.Y, H:i', $until) . ' Uhr')
                 : '',
             'prices'      => $rules > 0,
+            'hasSets'     => (new DealSets($this->db, new DealPricing($this->db)))->dealHasSets((int)$row->id),
+            'assetsCss'   => '',
+            'assetsJs'    => '',
             'pricesTitle' => $isEn ? 'Your newsletter prices are active' : 'Deine Newsletter-Preise sind aktiv',
             'pricesHint'  => $isEn ? 'The deal prices apply automatically in your cart.'
                 : 'Die Deal-Preise gelten automatisch im Warenkorb.',

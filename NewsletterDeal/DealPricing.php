@@ -38,6 +38,9 @@ final class DealPricing
     /** @var array<int, true>|null Artikel mit Deal-Preis in irgendeinem laufenden Deal (pro Request) */
     private static ?array $running = null;
 
+    /** @var array<int, array<string, mixed>>|null Regeln laufender Deals (pro Request) */
+    private static ?array $runningRules = null;
+
     /** @var array<int, string> Positionshinweise je spl_object_id der Warenkorbposition */
     private static array $notes = [];
 
@@ -247,6 +250,26 @@ final class DealPricing
         if (self::$running !== null) {
             return self::$running;
         }
+        $ids = [];
+        foreach ($this->runningRules() as $rule) {
+            foreach ($rule['products'] as $id) {
+                $ids[$id] = true;
+            }
+        }
+
+        return self::$running = $ids;
+    }
+
+    /**
+     * Regeln aller laufenden Deals – unabhängig von der Sitzung (nur für Platzhalter, nie für Preise).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function runningRules(): array
+    {
+        if (self::$runningRules !== null) {
+            return self::$runningRules;
+        }
         $running = [];
         try {
             foreach ($this->db->getObjects('SELECT * FROM ' . DealPageService::TABLE . ' WHERE active = 1') as $page) {
@@ -255,16 +278,10 @@ final class DealPricing
                 }
             }
         } catch (\Throwable) {
-            return self::$running = [];
-        }
-        $ids = [];
-        foreach ($this->rulesFor($running) as $rule) {
-            foreach ($rule['products'] as $id) {
-                $ids[$id] = true;
-            }
+            return self::$runningRules = [];
         }
 
-        return self::$running = $ids;
+        return self::$runningRules = $this->rulesFor($running);
     }
 
     /**
@@ -540,8 +557,9 @@ final class DealPricing
     public static function reset(): void
     {
         self::$active  = null;
-        self::$running = null;
-        self::$notes   = [];
+        self::$running      = null;
+        self::$runningRules = null;
+        self::$notes        = [];
     }
 
     private function logError(\Throwable $e): void
