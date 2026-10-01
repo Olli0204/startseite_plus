@@ -121,11 +121,11 @@ class DealService
      *
      * @return int[]
      */
-    public static function parseIds(string $ids): array
+    public static function parseIds(string $ids, int $max = self::MAX_PRODUCTS): array
     {
         $parts = \array_map('intval', \preg_split('/[,;\s]+/', $ids) ?: []);
 
-        return \array_slice(\array_values(\array_unique(\array_filter($parts, static fn(int $id) => $id > 0))), 0, self::MAX_PRODUCTS);
+        return \array_slice(\array_values(\array_unique(\array_filter($parts, static fn(int $id) => $id > 0))), 0, $max);
     }
 
     /**
@@ -200,7 +200,8 @@ class DealService
                      LEFT JOIN tartikelpict vp ON vp.kArtikel = a.kVaterArtikel AND vp.nNr = 1';
         try {
             if (\is_array($query)) {
-                $ids = self::parseIds(\implode(';', \array_map('strval', $query)));
+                // Gespeicherte Auswahl laden: Newsletter-Deal-Seiten haben deutlich mehr als vier Artikel
+                $ids = self::parseIds(\implode(';', \array_map('strval', $query)), 200);
                 if ($ids === []) {
                     return [];
                 }

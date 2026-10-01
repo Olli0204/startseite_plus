@@ -154,6 +154,26 @@ Verwendung:
 
 Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Zeitzone, Beschriftungen je Sprache), `Portlets/Common/countdown.tpl` ist das gemeinsame Snippet, `Portlets/Common/countdown.js` der Zähler (vom Portlet über `getExtraJsFiles()`, auf der Artikelseite per `<script defer>`). Admin: `ModelBackendController` auf Basis von `GenericModelController` mit `Models/Countdown.php`.
 
+## Newsletter-Deals (seit 2.11.0)
+
+Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **„Newsletter-Deals“**:
+
+- Jede Seite ist eine **normale Artikelliste** (Filter, Sortierung, Seiten, Mobil-Filter wie auf Kategorieseiten) mit den im
+  Artikel-Picker gewählten Artikeln (bis 200; ohne Auswahl die im Kupon hinterlegten Artikel). Gewählte Varianten bringen
+  ihren Vaterartikel in die Liste.
+- Erreichbar nur über den **geheimen Link** `https://<shop>/newsletter-deals-<zufall>` (frei änderbar, Kollisionen mit
+  Shop-URLs werden abgelehnt). Kein Menüeintrag, `noindex, nofollow`.
+- Kopf der Liste: Überschrift, Text (DE/EN) und – mit Kupon – eine Code-Karte mit Rabatt, Kopieren-Button, Gültigkeit und
+  Countdown. Der Rabatt kommt aus dem JTL-Kupon; damit er nur für die Deal-Artikel gilt, im Kupon die Artikel hinterlegen.
+- Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
+  `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
+
+Technik: `NewsletterDeal/DealPageRoute` registriert in `HOOK_ROUTER_PRE_DISPATCH` je Seite eine Route (inkl. angehängter
+SEO-Filter `_s2`, `::…`, `__…`), lässt den Core-`DefaultController` Filter/Seiten parsen, setzt `DealPageState` als
+Basiszustand des Produktfilters und rendert mit dem Core-`ProductListController`. `HOOK_PRODUCTFILTER_INIT_STATES`
+initialisiert vorher den `DummyState`, sonst leitet `ProductFilter::validate()` bei Hersteller-/Kategoriefilter weg.
+Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
+
 ## Kompatibilität
 
 | Plugin-Version | JTL-Shop      |
@@ -176,6 +196,12 @@ Technik: `Countdown/CountdownService.php` liefert View-Arrays (ISO-Endzeit mit Z
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.11.0
+- Neu: Newsletter-Deals – versteckte Artikellisten mit Kupon-Code, nur per geheimem Link (Admin-Tab „Newsletter-Deals“)
+- Artikel- und Kupon-Picker funktionieren jetzt auch im Backend-Tab (globales `ioCall`), Vaterartikel ohne Warnhinweis
+  über `data-parents-ok`
+- Countdown-Tab erzwingt sich nicht mehr als aktiven Tab, wenn die URL einen anderen Tab verlangt
 
 ### 2.2.0
 - Aktions-Banner: Countdown-Auswahl ist jetzt ein Dropdown direkt im Tab „Countdown“ (Kein Countdown / Countdowns aus der Verwaltung / Eigener Endzeitpunkt) statt einer Checkbox mit Unterfeldern; die Liste wird in jedem Kontext aus der Datenbank geladen (in 2.1.2 nur im Backend, wodurch der OPC-Editor keine Countdowns anbot)

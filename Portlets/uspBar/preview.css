@@ -2,5 +2,5 @@
    Zieht man ein Portlet neu auf die Seite, lädt JTL ausschließlich diese preview.css nach
    (Portlet::getCssFile(true)); common.css und style.css kämen sonst erst nach Speichern und Neuladen.
    Der Versions-Parameter muss zu <Version> in info.xml passen (Test im Release-Check). */
-@import url("../Common/common.css?v=2.10.1");
-@import url("style.css?v=2.10.1");
+@import url("../Common/common.css?v=2.11.0");
+@import url("style.css?v=2.11.0");
