@@ -173,7 +173,10 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   höchstens so oft wie Partner im Warenkorb). Beispiel Newsletter: Boards 250 €, Transfer 150 €, Upshot 120 €, Upshot im
   Set mit dem Odyssey 100 €. Freigeschaltet pro Sitzung durch den Besuch des Links oder den **Deal-Code** im Kupon-Feld
   des Warenkorbs. Der Warenkorb übernimmt den Deal-Preis direkt als Positionspreis (Hinweis „Newsletter-Deal (statt …)“),
-  nur wenn er günstiger als der Shop-Preis ist; Liste und Artikelseite zeigen „Newsletter-Preis …“ / „Im Set mit …“.
+  nur wenn er günstiger als der Shop-Preis ist; Liste und Artikelseite zeigen „Newsletter-Preis …“ / „Im Set mit …“ –
+  seit 2.13.1 cache-sicher: das HTML enthält nur leere Platzhalter, `frontend/js/newsletter-deal.js` lädt die Preise per
+  IO (`startseitePlusNlDealPrices`) ausschließlich für freigeschaltete Sitzungen nach. Deal-Seiten senden
+  `X-LiteSpeed-Cache-Control: no-cache`. **Nach dem Update einmal den LiteSpeed-Cache leeren.**
   Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
   `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
@@ -206,6 +209,11 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.13.1
+- Fix: Newsletter-Preis-Hinweise waren im Live-Shop für alle Kunden sichtbar – der LiteSpeed-Seitencache lieferte eine
+  für einen freigeschalteten Kunden gerenderte Artikelseite an alle aus. Hinweise werden jetzt per IO pro Sitzung
+  nachgeladen (Platzhalter im HTML für alle gleich); Deal-Seiten werden nicht mehr gecacht
 
 ### 2.13.0
 - Newsletter-Deals: Deal-Preise je Seite (Festpreis je Artikel, Set-Preis mit Partnerartikel, Tabelle
