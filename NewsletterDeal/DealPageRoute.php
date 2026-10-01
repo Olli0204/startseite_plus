@@ -149,6 +149,8 @@ final class DealPageRoute
         }
 
         self::$current = $page;
+        // Der Besuch des geheimen Links schaltet die Deal-Preise für diese Sitzung frei (nur laufende Aktionen)
+        DealPricing::create()->unlock($page);
         // Wie bei Kategorie-URLs bestimmt der Link die Sprache: updateState() übernimmt state->languageID in
         // Shop::updateLanguage(), bevor der Produktfilter initialisiert wird (Session-Sprache wechselt mit).
         $languageIDs = self::languageIDs();
