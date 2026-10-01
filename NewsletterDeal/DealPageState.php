@@ -27,15 +27,17 @@ final class DealPageState extends AbstractFilter
     }
 
     /**
-     * @param int[] $productIDs leer = keine Artikel (z. B. abgelaufene Aktion)
+     * @param array<int, string> $slugs      Slug je Sprach-ID (fehlende Sprachen bekommen den ersten Slug)
+     * @param int[]              $productIDs leer = keine Artikel (z. B. abgelaufene Aktion)
      */
-    public static function create(ProductFilter $productFilter, int $pageID, string $slug, string $name, array $productIDs): self
+    public static function create(ProductFilter $productFilter, int $pageID, array $slugs, string $name, array $productIDs): self
     {
         $state             = new self($productFilter);
         $state->productIDs = \array_values(\array_filter(\array_map('intval', $productIDs), static fn(int $id) => $id > 0));
         $state->setValue($pageID)->setName($name)->setFrontendName($name);
+        $fallback = (string)(\reset($slugs) ?: '');
         foreach ($productFilter->getFilterConfig()->getLanguages() as $language) {
-            $state->cSeo[(int)$language->kSprache] = $slug;
+            $state->cSeo[(int)$language->kSprache] = $slugs[(int)$language->kSprache] ?? $fallback;
         }
         $state->isInitialized = true;
 

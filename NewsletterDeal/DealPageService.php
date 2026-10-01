@@ -61,22 +61,24 @@ final class DealPageService
     }
 
     /**
-     * Slugs aller Seiten für die Routen (id => slug). Auch inaktive Seiten bekommen eine Route, damit Admins sie
-     * vorab ansehen können; Kunden erhalten dort die normale 404-Seite.
+     * Routen aller Seiten: je Seite der deutsche und der englische Link. Auch inaktive Seiten bekommen Routen, damit
+     * Admins sie vorab ansehen können; Kunden erhalten dort die normale 404-Seite.
      *
-     * @return array<int, string>
+     * @return array<int, array{id: int, slug: string, lang: string}>
      */
     public function routes(): array
     {
         $routes = [];
         try {
-            foreach ($this->db->getObjects('SELECT id, slug FROM ' . self::TABLE) as $row) {
-                if (self::isValidSlug((string)$row->slug)) {
-                    $routes[(int)$row->id] = (string)$row->slug;
+            foreach ($this->db->getObjects('SELECT id, slug, slug_en FROM ' . self::TABLE) as $row) {
+                foreach (['ger' => (string)$row->slug, 'eng' => (string)$row->slug_en] as $lang => $slug) {
+                    if (self::isValidSlug($slug)) {
+                        $routes[] = ['id' => (int)$row->id, 'slug' => $slug, 'lang' => $lang];
+                    }
                 }
             }
         } catch (\Throwable) {
-            // Tabelle fehlt (z. B. während des Plugin-Updates) – keine Routen
+            // Tabelle/Spalte fehlt (z. B. während des Plugin-Updates) – keine Routen
         }
 
         return $routes;
@@ -153,8 +155,8 @@ final class DealPageService
         }
         try {
             $own = $this->db->getSingleObject(
-                'SELECT id FROM ' . self::TABLE . ' WHERE slug = :slug AND id != :id',
-                ['slug' => $slug, 'id' => $exceptID]
+                'SELECT id FROM ' . self::TABLE . ' WHERE (slug = :slug OR slug_en = :slug2) AND id != :id',
+                ['slug' => $slug, 'slug2' => $slug, 'id' => $exceptID]
             );
             if ($own !== null) {
                 return 'Dieser Link wird bereits von einer anderen Deal-Seite verwendet.';
@@ -170,18 +172,29 @@ final class DealPageService
         return '';
     }
 
-    public static function url(string $slug): string
+    /**
+     * @param int|null $languageID für Shops mit eigener Domain je Sprache (URL_SHOP_ENG); sonst egal
+     */
+    public static function url(string $slug, ?int $languageID = null): string
     {
-        return \rtrim(Shop::getURL(), '/') . '/' . $slug;
+        return \rtrim(Shop::getURL(false, $languageID), '/') . '/' . $slug;
     }
 
     /**
      * Link aus dem Backend: "fromAdmin=yes" lässt Shop::isAdmin(true) die Admin-Sitzung erkennen, damit
      * inaktive und geplante Seiten als Vorschau erscheinen. Für den Newsletter immer url() verwenden.
      */
-    public static function previewUrl(string $slug): string
+    public static function previewUrl(string $slug, ?int $languageID = null): string
     {
-        return self::url($slug) . '?fromAdmin=yes';
+        return self::url($slug, $languageID) . '?fromAdmin=yes';
+    }
+
+    /**
+     * Englischer Standard-Link zum deutschen: "<slug>-en".
+     */
+    public static function englishSlug(string $slug): string
+    {
+        return \mb_substr($slug, 0, 117) . '-en';
     }
 
     /* ------------------------------------------------------------ Artikel */
