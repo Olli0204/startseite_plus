@@ -71,6 +71,8 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Button „Beide/Alle in den Warenkorb“: legt alle Artikel per IO-Aufruf (`startseitePlusDeal`) in den Warenkorb und löst den
   Kupon mit der Core-Prüfung (`Kupon::check()`/`accept()`) ein; ein bereits eingelöster anderer Kupon wird nicht ersetzt.
   Nur für Artikel ohne Variationsauswahl – sonst bleibt es beim Code mit „Kopieren“-Button
+  Seit 2.13.2 cache-sicher: das HTML enthält kein CSRF-Token; `deal.js` holt beim Klick zuerst per IO
+  (`startseitePlusDealToken`, nur POST) das Token der eigenen Sitzung und schickt es dann mit dem Warenkorb-Aufruf
 - Ist der Kupon inaktiv, abgelaufen, aufgebraucht oder für die Kundengruppe nicht gültig, erscheint der Banner im Shop nicht;
   im OPC-Editor steht dann ein Hinweis mit dem Grund
 - Countdown optional: bis zum Ablauf des Kupons oder aus der Countdown-Verwaltung
@@ -209,6 +211,12 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.13.2
+- Fix: „In den Warenkorb“ im Deal-Banner und in Deal-Slides des Hero-Sliders scheiterte auf Seiten aus dem
+  LiteSpeed-Seitencache („Die Artikel konnten nicht in den Warenkorb gelegt werden“) – das Button-Markup enthielt das
+  CSRF-Token der Sitzung, die die Seite gerendert hatte. Das Token steht nicht mehr im HTML, `deal.js` holt es vor dem
+  Warenkorb-Aufruf per IO (`startseitePlusDealToken`, nur POST); der Server prüft es weiter mit `Form::validateToken()`
 
 ### 2.13.1
 - Fix: Newsletter-Preis-Hinweise waren im Live-Shop für alle Kunden sichtbar – der LiteSpeed-Seitencache lieferte eine

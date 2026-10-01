@@ -22,6 +22,7 @@ use Plugin\startseite_plus\Countdown\CountdownService;
 class DealService
 {
     public const IO_FUNCTION           = 'startseitePlusDeal';
+    public const TOKEN_FUNCTION        = 'startseitePlusDealToken';
     public const ADMIN_SEARCH_FUNCTION = 'startseitePlusProductSearch';
     public const ADMIN_COUPON_FUNCTION   = 'startseitePlusCouponSearch';
     public const ADMIN_CATEGORY_FUNCTION = 'startseitePlusCategorySearch';
@@ -619,7 +620,6 @@ class DealService
             'validLabel'  => $validUntil !== null
                 ? ($isEn ? 'valid until ' . \date('m/d/Y', $validUntil) : 'gültig bis ' . \date('d.m.Y', $validUntil))
                 : '',
-            'token'       => self::token(),
             'lang'        => $isEn ? 'en' : 'de',
         ];
     }
@@ -700,6 +700,23 @@ class DealService
         }
 
         return $isEn ? 'Save ' . $discount . ' with your code' : $discount . ' Rabatt mit deinem Code';
+    }
+
+    /**
+     * IO-Funktion: CSRF-Token der aktuellen Sitzung für deal.js. Das Token steht bewusst nicht im HTML –
+     * der Live-Shop liefert Seiten aus dem LiteSpeed-Seitencache, dort hätte jeder Besucher das Token der
+     * Sitzung, die die Seite gerendert hat. Nur per POST (der Core beantwortet /io auch per GET, das ein
+     * Seitencache speichern könnte); ohne CORS-Header ist die Antwort nur für den Shop selbst lesbar.
+     *
+     * @return array{token: string}
+     */
+    public static function ioToken(): array
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            return ['token' => ''];
+        }
+
+        return ['token' => self::token()];
     }
 
     /**

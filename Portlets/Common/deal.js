@@ -73,23 +73,35 @@
         });
     };
 
-    var onAdd = function (button) {
-        var deal = button.closest('[data-sp-deal]');
-        var ids = (button.getAttribute('data-sp-deal-add') || '').split(',').filter(Boolean);
-        var token = button.getAttribute('data-sp-token') || '';
-        var request = {
-            name: 'startseitePlusDeal',
-            params: [ids, button.getAttribute('data-sp-code') || '', token]
-        };
-        button.classList.add('is-loading');
-        showMessage(deal, '');
-        fetch(ioUrl(), {
+    var ioCall = function (name, params, token) {
+        var body = 'io=' + encodeURIComponent(JSON.stringify({name: name, params: params}));
+        if (token) {
+            body += '&jtl_token=' + encodeURIComponent(token);
+        }
+        return fetch(ioUrl(), {
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
-            body: 'io=' + encodeURIComponent(JSON.stringify(request)) + '&jtl_token=' + encodeURIComponent(token)
+            body: body
         }).then(function (response) {
             return response.json();
+        });
+    };
+
+    /* Das CSRF-Token steht nicht im HTML: Seiten kommen aus dem LiteSpeed-Seitencache und würden sonst das
+       Token einer fremden Sitzung enthalten. Deshalb vor jedem Klick das Token der eigenen Sitzung holen. */
+    var onAdd = function (button) {
+        var deal = button.closest('[data-sp-deal]');
+        var ids = (button.getAttribute('data-sp-deal-add') || '').split(',').filter(Boolean);
+        var code = button.getAttribute('data-sp-code') || '';
+        button.classList.add('is-loading');
+        showMessage(deal, '');
+        ioCall('startseitePlusDealToken', []).then(function (data) {
+            var token = data && typeof data.token === 'string' ? data.token : '';
+            if (token === '') {
+                throw new Error('kein Sitzungs-Token erhalten');
+            }
+            return ioCall('startseitePlusDeal', [ids, code, token], token);
         }).then(function (data) {
             if (data && data.ok && data.redirect) {
                 window.location.href = data.redirect;

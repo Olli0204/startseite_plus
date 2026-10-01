@@ -53,6 +53,10 @@ class Bootstrap extends Bootstrapper
                         => DealService::create()->addToCart($ids, $code, $token)
                 );
             }
+            if (\is_object($io) && !$io->exists(DealService::TOKEN_FUNCTION)) {
+                // Token der Sitzung für den Warenkorb-Button (gecachte Seiten enthalten kein Token)
+                $io->register(DealService::TOKEN_FUNCTION, static fn(): array => DealService::ioToken());
+            }
         });
 
         // Newsletter-Deals: geheime Links als eigene Routen vor dem Core-Catch-all registrieren
