@@ -1,4 +1,5 @@
-{* Startseite Plus – Rabattcode mit Kopieren-Button (Deal-Banner, Deal-Slides). Parameter: deal *}
+{* Startseite Plus – Rabattcode mit Kopieren-Button (Deal-Banner, Deal-Slides). Parameter: deal (ohne Code – z. B. Slide „Newsletter-Aktion“ – entfällt der Chip) *}
+{if $deal.code|default:'' !== ''}
 <span class="sp-deal__code">
     <span class="sp-deal__code-value">{$deal.code|escape:'html'}</span>
     <button type="button" class="sp-deal__copy" data-sp-copy="{$deal.code|escape:'html'}"
@@ -7,3 +8,4 @@
         <span class="sp-deal__copy-label">{$deal.copyLabel|escape:'html'}</span>
     </button>
 </span>
+{/if}

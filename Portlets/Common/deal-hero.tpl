@@ -40,7 +40,7 @@
             {if $deal.kicker !== ''}<span class="sp-kicker sp-deal__kicker">{$deal.kicker|escape:'html'}</span>{/if}
             <{$titleTag} class="sp-deal__title">{$deal.title|escape:'html'}</{$titleTag}>
             {if $deal.count > 0}
-                <p class="sp-deal__names">{foreach $deal.items as $item}{if !$item@first} + {/if}{$item.name|escape:'html'}{if $item.variant !== ''} ({$item.variant|escape:'html'}){/if}{/foreach}</p>
+                <p class="sp-deal__names">{foreach $deal.items as $item}{if !$item@first}{$deal.namesSep|default:' + '}{/if}{$item.name|escape:'html'}{if $item.variant !== ''} ({$item.variant|escape:'html'}){/if}{/foreach}</p>
             {/if}
             {if $deal.text !== ''}<p class="sp-deal__text">{$deal.text|escape:'html'}</p>{/if}
             {if $deal.showPrices}

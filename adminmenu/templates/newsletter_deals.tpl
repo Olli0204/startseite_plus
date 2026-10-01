@@ -86,7 +86,16 @@
                                 </td>
                                 <td class="text-center">{if $page.rules > 0}{$page.rules}{else}<span class="sp-nld-muted">–</span>{/if}</td>
                                 <td class="text-center">{if $page.count > 0}{$page.count}{elseif $page.rules > 0}<span class="sp-nld-muted" title="Artikel der Deal-Preise">aus Preisen</span>{else}<span class="sp-nld-muted" title="Artikel aus dem Kupon">Kupon</span>{/if}</td>
-                                <td class="text-center"><span class="badge badge-{$page.statusClass}">{$page.statusLabel|escape:'html'}</span></td>
+                                <td class="text-center">
+                                    <span class="badge badge-{$page.statusClass}">{$page.statusLabel|escape:'html'}</span><br>
+                                    {if $page.public}
+                                        <span class="badge badge-primary">für alle</span>
+                                    {elseif $page.publicFrom !== ''}
+                                        <span class="sp-nld-muted" title="Für alle Kunden ab">alle ab {$page.publicFrom|escape:'html'}</span>
+                                    {else}
+                                        <span class="sp-nld-muted">nur Newsletter</span>
+                                    {/if}
+                                </td>
                                 <td class="text-center">
                                     <div class="btn-group">
                                         <a class="btn btn-link px-2" href="{$nldBaseUrl|escape:'html'}&amp;nld=edit&amp;nld_id={$page.id}" title="Bearbeiten">
@@ -219,6 +228,24 @@
                                value="{$nldForm.valid_until|escape:'html'}">
                         <small class="text-muted">Danach zeigt die Seite „Aktion beendet“ statt der Artikel. Leer = Ende des
                             Kupons (falls gesetzt) für den Countdown.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="nld_public_from">Für alle Kunden ab (optional):</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <div class="input-group">
+                            <input type="datetime-local" class="form-control" id="nld_public_from" name="nld_public_from" step="60"
+                                   value="{$nldForm.public_from|escape:'html'}">
+                            <div class="input-group-append">
+                                <button type="button" class="btn btn-outline-primary" id="sp-nld-public-now" title="Ab sofort für alle Kunden">
+                                    <i class="fal fa-bolt"></i> Jetzt
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">Ab diesem Zeitpunkt gelten die Deal-Preise für <strong>alle</strong> Kunden – ohne Link und
+                            Code –, die Seite spricht „Jetzt für alle“, und die Hero-Slide „Newsletter-Aktion“ (OnPage Composer,
+                            Hero-Slider) erscheint auf der Startseite. Leer = nur für Newsletter-Empfänger. Beispiel: Start Montag 8 Uhr,
+                            „Für alle Kunden ab“ Freitag 8 Uhr. Der Seitencache wird beim Wechsel automatisch geleert.</small>
                     </div>
                 </div>
 
@@ -358,6 +385,15 @@
         }
         if (window.spPicker) {
             window.spPicker.initAll(root);
+        }
+        var publicNow = document.getElementById('sp-nld-public-now');
+        if (publicNow) {
+            publicNow.addEventListener('click', function () {
+                var d = new Date();
+                var pad = function (n) { return ('0' + n).slice(-2); };
+                document.getElementById('nld_public_from').value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-'
+                    + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+            });
         }
         var newSlug = document.getElementById('sp-nld-newslug');
         if (newSlug) {

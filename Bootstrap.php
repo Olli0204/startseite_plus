@@ -12,6 +12,7 @@ use JTL\Smarty\JTLSmarty;
 use Laminas\Diactoros\ServerRequestFactory;
 use Plugin\startseite_plus\Countdown\CountdownService;
 use Plugin\startseite_plus\Deal\DealService;
+use Plugin\startseite_plus\NewsletterDeal\DealCache;
 use Plugin\startseite_plus\NewsletterDeal\DealPageAdmin;
 use Plugin\startseite_plus\NewsletterDeal\DealPageRoute;
 use Plugin\startseite_plus\NewsletterDeal\DealPageService;
@@ -71,6 +72,8 @@ class Bootstrap extends Bootstrapper
 
         // Newsletter-Deals: geheime Links als eigene Routen vor dem Core-Catch-all registrieren
         $dispatcher->hookInto(\HOOK_ROUTER_PRE_DISPATCH, static function (array $args): void {
+            // Seitencache leeren, wenn eine Aktion startet, für alle freigegeben wird oder endet
+            DealCache::create()->sync();
             // Deal-Code im Kupon-Feld abfangen, bevor der Core ihn als unbekannten Kupon ablehnt
             DealPricing::create()->handleCouponField();
             $router = $args['router'] ?? null;
