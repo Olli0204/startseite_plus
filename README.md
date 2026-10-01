@@ -226,6 +226,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 - Newsletter-Deals: Darstellung des Newsletter-Preises je Deal-Seite (Zeile im Preisblock / als Hauptpreis / Marke am
   Bild) statt des gestrichelten Kastens; Hinweis nur, wenn günstiger als der aktuelle Shop-Preis; Set-Partner und
   Konfigurator-Optionen zu Vaterartikeln zusammengefasst
+- Fix Set-Konfigurator (live gefunden): „Set in den Warenkorb“ schlug immer fehl – `Product::getSelectedPropertiesForVarCombiArticle()`
+  liest die Variationswerte aus `$_POST['eigenschaftwert']` und leitet ohne sie per `header('Location: …&r=5')` + `exit`
+  mitten im IO-Aufruf um. `DealService::cartProperties()` setzt die Werte der Kombination dafür kurz selbst
 
 ### 2.14.0
 - Newsletter-Deals: Set-Konfigurator (Board- und Bindungsgröße wählen, beides mit einem Klick in den Warenkorb) auf der
