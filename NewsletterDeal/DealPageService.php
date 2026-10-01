@@ -108,6 +108,33 @@ final class DealPageService
     }
 
     /**
+     * Öffentliche Phase: Die Seite läuft und "Für alle Kunden ab" (public_from) ist erreicht – die Deal-Preise gelten
+     * dann ohne Link/Code für alle Kunden, und die Hero-Slide "Newsletter-Aktion" erscheint.
+     */
+    public static function isPublic(stdClass $row, ?int $now = null): bool
+    {
+        $now ??= \time();
+        if (self::status($row, $now) !== 'active') {
+            return false;
+        }
+        $from = self::timestamp($row->public_from ?? null);
+
+        return $from !== null && $from <= $now;
+    }
+
+    /**
+     * Zustand, der das ausgelieferte (gecachte) HTML bestimmt: off | newsletter | public | ended.
+     */
+    public static function cacheState(stdClass $row, ?int $now = null): string
+    {
+        return match (self::status($row, $now)) {
+            'active'  => self::isPublic($row, $now) ? 'public' : 'newsletter',
+            'expired' => 'ended',
+            default   => 'off',
+        };
+    }
+
+    /**
      * Kunden sehen aktive und abgelaufene Seiten (abgelaufen = Hinweis statt Artikel), Admins zusätzlich
      * inaktive und künftige Seiten als Vorschau.
      */
@@ -274,7 +301,10 @@ final class DealPageService
         }
         $couponOk = $deal !== null && !empty($deal['show']);
         $rules    = \count((new DealPricing($this->db))->rulesFor([(int)$row->id]));
-        $code     = DealPricing::normalizeCode((string)($row->code ?? ''));
+        $public   = self::isPublic($row);
+        // in der öffentlichen Phase braucht niemand den Code mehr
+        $code     = $public ? '' : DealPricing::normalizeCode((string)($row->code ?? ''));
+        $publicAt = self::timestamp($row->public_from ?? null);
 
         // Ende für Countdown und "gültig bis": Seite, sonst Kupon
         $until = self::timestamp($row->valid_until ?? null) ?? ($couponOk ? ($deal['validUntil'] ?? null) : null);
@@ -286,6 +316,10 @@ final class DealPageService
                 'upcoming' => ['Vorschau: Die Seite startet am ' . \date('d.m.Y H:i', (int)self::timestamp($row->valid_from)) . ' – bis dahin sehen Kunden eine 404-Seite.'],
                 default    => [],
             };
+            if (!$public && $publicAt !== null && $status !== 'expired') {
+                $notes[] = 'Hinweis: Ab ' . \date('d.m.Y H:i', $publicAt) . ' gilt die Aktion für alle Kunden (ohne Link/Code), '
+                    . 'die Hero-Slide „Newsletter-Aktion“ erscheint dann auf der Startseite.';
+            }
             if ($deal !== null && !$couponOk) {
                 foreach ($deal['problems'] ?? [] as $problem) {
                     $notes[] = 'Kupon wird nicht angezeigt: ' . $problem;
@@ -312,7 +346,10 @@ final class DealPageService
             'notes'       => $notes,
             'deal'        => $couponOk ? $deal : null,
             'discount'    => $couponOk ? (string)$deal['discount'] : '',
-            'kicker'      => $isEn ? 'Exclusive for newsletter subscribers' : 'Exklusiv für Newsletter-Abonnenten',
+            'public'      => $public,
+            'kicker'      => $public
+                ? ($isEn ? 'Now available to everyone' : 'Jetzt für alle')
+                : ($isEn ? 'Exclusive for newsletter subscribers' : 'Exklusiv für Newsletter-Abonnenten'),
             'hint'        => $isEn ? 'Enter the code in your cart.' : 'Code im Warenkorb eingeben.',
             'saveLabel'   => $isEn ? 'off with your code' : 'Rabatt mit deinem Code',
             'validLabel'  => $until !== null
@@ -322,7 +359,9 @@ final class DealPageService
             'hasSets'     => (new DealSets($this->db, new DealPricing($this->db)))->dealHasSets((int)$row->id),
             'assetsCss'   => '',
             'assetsJs'    => '',
-            'pricesTitle' => $isEn ? 'Your newsletter prices are active' : 'Deine Newsletter-Preise sind aktiv',
+            'pricesTitle' => $public
+                ? ($isEn ? 'The deal prices apply to everyone' : 'Die Aktionspreise gelten jetzt für alle')
+                : ($isEn ? 'Your newsletter prices are active' : 'Deine Newsletter-Preise sind aktiv'),
             'pricesHint'  => $isEn ? 'The deal prices apply automatically in your cart.'
                 : 'Die Deal-Preise gelten automatisch im Warenkorb.',
             'code'        => $code,
@@ -342,6 +381,133 @@ final class DealPageService
                 )
                 : null,
         ];
+    }
+
+    /* --------------------------------------------------------- Hero-Slide */
+
+    /**
+     * Anzeige-Daten für die Hero-Slide "Newsletter-Aktion" (gleiches Format wie DealService::view(), gerendert von
+     * Portlets/Common/deal-hero.tpl): bis zu 4 Artikel der Deal-Preise mit Aktionspreis, Button auf die Deal-Seite.
+     * Im Shop nur in der öffentlichen Phase; sonst null (OPC-Vorschau: Karte mit Hinweis).
+     *
+     * @param array<string, string> $opts kicker, title, text, linkLabel (leer = aus der Deal-Seite)
+     * @return array<string, mixed>|null
+     */
+    public function slideView(int $dealID, array $opts, bool $isPreview): ?array
+    {
+        $row = $this->find($dealID);
+        if ($row === null) {
+            return $isPreview ? self::slideProblem('Bitte eine Newsletter-Aktion auswählen.') : null;
+        }
+        $public = self::isPublic($row);
+        if (!$public && !$isPreview) {
+            return null;
+        }
+        $isEn   = CountdownService::currentLanguage() === 'eng';
+        $pick   = static fn(string $de, string $en): string => $isEn && \trim($en) !== '' ? \trim($en) : \trim($de);
+        $prices = [];
+        $order  = [];
+        foreach ((new DealPricing($this->db))->rulesFor([(int)$row->id]) as $rule) {
+            foreach ($rule['products'] as $id) {
+                $order[$id] = true;
+                if ($rule['type'] === 'price' || !isset($prices[$id])) {
+                    $prices[$id] = isset($prices[$id]) ? \min($prices[$id], $rule['price']) : $rule['price'];
+                }
+            }
+        }
+        $items = [];
+        foreach (DealService::create()->loadProducts(\array_slice(\array_keys($order), 0, DealService::MAX_PRODUCTS)) as $product) {
+            $image   = $product->Bilder[0] ?? null;
+            $items[] = [
+                'id'      => (int)$product->kArtikel,
+                'name'    => DealService::plain($product->cName),
+                'variant' => '',
+                'url'     => (string)($product->cURLFull ?? ''),
+                'image'   => (string)($image->cURLNormal ?? $image->cURLKlein ?? ''),
+                'price'   => DealPricing::formatGross((float)($prices[(int)$product->kArtikel] ?? 0)),
+            ];
+        }
+        $until    = self::timestamp($row->valid_until ?? null);
+        $langID   = DealPageRoute::languageIDs()[$isEn ? 'eng' : 'ger'] ?? null;
+        $slug     = $isEn && self::isValidSlug((string)($row->slug_en ?? '')) ? (string)$row->slug_en : (string)$row->slug;
+        $problems = [];
+        if (!$public) {
+            $from       = self::timestamp($row->public_from ?? null);
+            $problems[] = $from === null
+                ? 'Wird im Shop erst angezeigt, wenn bei der Aktion „Für alle Kunden ab“ gesetzt und erreicht ist.'
+                : 'Wird im Shop ab ' . \date('d.m.Y H:i', $from) . ' angezeigt („Für alle Kunden ab“), solange die Aktion läuft.';
+        }
+
+        return [
+            'found'       => true,
+            'show'        => $public,
+            'problems'    => $problems,
+            'notes'       => [],
+            'items'       => $items,
+            'count'       => \count($items),
+            'ids'         => '',
+            'namesSep'    => ' · ',   // einzelne Aktionsartikel, kein Bundle ("+")
+            'kicker'      => ($opts['kicker'] ?? '') !== '' ? $opts['kicker'] : ($isEn ? 'Now available to everyone' : 'Jetzt für alle'),
+            'title'       => ($opts['title'] ?? '') !== '' ? $opts['title'] : $pick((string)$row->title, (string)$row->title_en),
+            'text'        => ($opts['text'] ?? '') !== '' ? $opts['text'] : $pick((string)($row->text ?? ''), (string)($row->text_en ?? '')),
+            'showPrices'  => false,
+            'sum'         => '',
+            'total'       => '',
+            'withCode'    => '',
+            'savingLabel' => '',
+            'validUntil'  => $until,
+            'showValid'   => $until !== null,
+            'validLabel'  => $until !== null
+                ? ($isEn ? 'until ' . \date('m/d/Y', $until) : 'bis ' . \date('d.m.Y', $until))
+                : '',
+            'code'        => '',
+            'codeLabel'   => '',
+            'copyLabel'   => '',
+            'copiedLabel' => '',
+            'link'        => self::url($slug, $langID),
+            'linkLabel'   => ($opts['linkLabel'] ?? '') !== '' ? $opts['linkLabel'] : ($isEn ? 'View deals' : 'Zur Aktion'),
+            'canAdd'      => false,
+            'hasAction'   => true,
+            'btnLabel'    => '',
+            'autoHint'    => '',
+        ];
+    }
+
+    /**
+     * Optionen für die Auswahl im OPC-Editor (id => Name mit Status). Pro Request gecacht, Fehler ergeben eine leere Liste.
+     *
+     * @return array<string, string>
+     */
+    public static function slideOptions(): array
+    {
+        static $options = null;
+        if ($options !== null) {
+            return $options;
+        }
+        $options = ['' => '– Aktion wählen –'];
+        try {
+            foreach (self::create()->all() as $row) {
+                $from  = self::timestamp($row->public_from ?? null);
+                $state = match (self::cacheState($row)) {
+                    'public'     => 'für alle',
+                    'newsletter' => $from !== null ? 'für alle ab ' . \date('d.m.Y H:i', $from) : 'nur Newsletter',
+                    'ended'      => 'beendet',
+                    default      => 'inaktiv/geplant',
+                };
+                $options[(string)$row->id] = (string)$row->name . ' (' . $state . ')';
+            }
+        } catch (\Throwable) {
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function slideProblem(string $message): array
+    {
+        return ['found' => false, 'show' => false, 'problems' => [$message]];
     }
 
     /* ------------------------------------------------------------- Helfer */

@@ -185,6 +185,12 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   Shop-Preis rutscht in „Alter Preis“, Marke „Newsletter“) oder *Marke am Produktbild* (unten links; Artikelseite: Zeile).
   Hinweise erscheinen nur, wenn der Deal-Preis unter dem aktuellen Shop-Preis liegt (`data-sp-nld-current`); Set-Partner
   werden unter ihrem Vaterartikel zusammengefasst (kein „Odyssey / Odyssey 147 / Odyssey 155“ mehr).
+- **Für alle Kunden ab (seit 2.16.0):** optionaler Zeitpunkt je Deal-Seite (Button „Jetzt“). Ab dann gelten die Deal-Preise für
+  alle Kunden ohne Link/Code (auch Set-Konfigurator und Preis-Hinweise), die Seite zeigt „Jetzt für alle“ statt des Codes.
+  Hero-Slider: neue Slide-Art **„Newsletter-Aktion“** (Deal-Seite wählen) – Karte mit bis zu 4 Artikeln und Aktionspreisen,
+  Button „Zur Aktion“ auf den Link der Sprache; im Shop erst ab „Für alle Kunden ab“ (vorher wäre der geheime Link
+  öffentlich), verschwindet mit dem Ende. Bei jedem Zustandswechsel (Start, für alle, Ende) und jeder Änderung im Tab sendet
+  das Plugin einmal `X-LiteSpeed-Purge: *` (Spalte `cache_state`, `NewsletterDeal/DealCache.php`).
 - **Set-Konfigurator (seit 2.14.0):** zu jeder Set-Regel eine Karte mit beiden Artikeln (Bild, Deal-Preis, „statt“-Preis,
   Größen-/Variantenauswahl, ausverkaufte Größen gesperrt, Auswahl bei mehreren Set-Partnern) und „Set in den Warenkorb –
   350 €“ – auf der Deal-Seite über der Liste und auf den Artikelseiten von Set-Artikel und Set-Partner unter der Kaufbox
@@ -221,6 +227,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.16.0
+- Newsletter-Deals: „Für alle Kunden ab“ (Deal-Preise ohne Link/Code für alle), Hero-Slide „Newsletter-Aktion“ mit
+  Verknüpfung zur Deal-Seite, automatisches Leeren des LiteSpeed-Seitencaches bei Zustandswechseln und Änderungen
 
 ### 2.15.0
 - Newsletter-Deals: Darstellung des Newsletter-Preises je Deal-Seite (Zeile im Preisblock / als Hauptpreis / Marke am

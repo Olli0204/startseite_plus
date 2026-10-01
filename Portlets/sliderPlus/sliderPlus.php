@@ -7,6 +7,7 @@ namespace Plugin\startseite_plus\Portlets\sliderPlus;
 use JTL\OPC\Portlet;
 use JTL\OPC\PortletInstance;
 use Plugin\startseite_plus\Deal\DealService;
+use Plugin\startseite_plus\NewsletterDeal\DealPageService;
 use Plugin\startseite_plus\Portlets\Common\PortletHelper;
 
 /**
@@ -18,6 +19,10 @@ use Plugin\startseite_plus\Portlets\Common\PortletHelper;
  * Deal-Slides: Ist bei einem Slide ein Kupon gewählt, zeigt er statt der Beschriftung eine Deal-Karte
  * (Artikel und Rabatt aus dem Kupon, Warenkorb-Button mit automatischer Code-Einlösung, siehe DealService).
  * Deal-Slides dürfen ohne Bild sein (Hintergrundfarbe); ungültige Kupons blenden den Slide im Shop aus.
+ *
+ * Newsletter-Aktion (seit 2.16.0): verknüpft eine Newsletter-Deal-Seite – Karte mit Artikeln und Aktionspreisen, Button
+ * auf die Deal-Seite. Im Shop erst ab "Für alle Kunden ab" der Aktion (vorher wäre der geheime Link öffentlich) und nur,
+ * solange sie läuft; deal.js entfernt die Slide beim Ende (data-sp-deal-until).
  */
 class sliderPlus extends Portlet
 {
@@ -40,11 +45,14 @@ class sliderPlus extends Portlet
         'deal-category' => '',
         'deal-button'   => '',
         'deal-link'     => '',
+        'nl-deal'       => '',
     ];
 
     /** Sichtbarkeit der Slide-Felder je Slide-Typ (Repeater-Option showIf) */
     private const SHOW_DEAL  = ['field' => 'type', 'values' => 'deal'];
     private const SHOW_IMAGE = ['field' => 'type', 'values' => 'image'];
+    private const SHOW_NLDEAL = ['field' => 'type', 'values' => 'nldeal'];
+    private const SHOW_ANY_DEAL = ['field' => 'type', 'values' => 'deal;nldeal'];
 
     public function getButtonHtml(): string
     {
@@ -84,7 +92,19 @@ class sliderPlus extends Portlet
         foreach ($this->getItems($instance, 'slides', self::SLIDE_DEFAULTS) as $slide) {
             $slide['dealView'] = null;
             $isDeal            = $slide['type'] === 'deal' || ($slide['type'] === '' && $slide['deal'] !== '');
-            if ($isDeal) {
+            if ($slide['type'] === 'nldeal') {
+                $view = DealPageService::create()->slideView((int)$slide['nl-deal'], [
+                    'kicker'    => $slide['kicker'],
+                    'title'     => $slide['title'],
+                    'text'      => $slide['desc'],
+                    'linkLabel' => $slide['deal-button'],
+                ], $isPreview);
+                if ($view === null || (!$view['show'] && !$isPreview)) {
+                    continue;
+                }
+                $slide['dealView'] = $view;
+                $slide['deal-bg']  = self::cssKey($slide['deal-bg'], 'tint');
+            } elseif ($isDeal) {
                 if ($slide['deal'] === '') {
                     if (!$isPreview) {
                         continue;
@@ -253,8 +273,26 @@ class sliderPlus extends Portlet
                         'options' => [
                             'image' => \__('Bild-Slide – Bild mit Text und Button'),
                             'deal'  => \__('Deal-Slide – Kupon mit Artikeln und Warenkorb-Button'),
+                            'nldeal' => \__('Newsletter-Aktion – Deal-Seite (erscheint ab „Für alle Kunden ab“)'),
                         ],
                         'default' => 'image',
+                    ],
+                    [
+                        'name'    => 'nl-deal',
+                        'label'   => \__('Newsletter-Aktion'),
+                        'type'    => 'select',
+                        'width'   => 100,
+                        'options' => DealPageService::slideOptions(),
+                        'default' => '',
+                        'showIf'  => self::SHOW_NLDEAL,
+                    ],
+                    [
+                        'name'   => 'nldeal-hint',
+                        'label'  => '',
+                        'type'   => 'hint',
+                        'width'  => 100,
+                        'help'   => \__('Die Slide zeigt bis zu 4 Artikel der Deal-Preise mit Aktionspreis und verlinkt auf die Deal-Seite (deutscher bzw. englischer Link). Im Shop erscheint sie erst ab „Für alle Kunden ab“ (Plugin-Tab „Newsletter-Deals“) und verschwindet mit dem Ende der Aktion. Überschrift, Kicker und Text sind optional – leer kommen sie aus der Deal-Seite.'),
+                        'showIf' => self::SHOW_NLDEAL,
                     ],
                     [
                         'name'   => 'deal',
@@ -295,7 +333,7 @@ class sliderPlus extends Portlet
                         'label'       => \__('Button-Text'),
                         'width'       => 40,
                         'placeholder' => \__('Button-Text – leer: „Zur Aktion“'),
-                        'showIf'      => self::SHOW_DEAL,
+                        'showIf'      => self::SHOW_ANY_DEAL,
                     ],
                     [
                         'name'        => 'deal-link',
@@ -334,7 +372,7 @@ class sliderPlus extends Portlet
                             'accent' => \__('Akzentfarbe'),
                         ],
                         'default' => 'tint',
-                        'showIf'  => self::SHOW_DEAL,
+                        'showIf'  => self::SHOW_ANY_DEAL,
                     ],
                 ],
                 true,

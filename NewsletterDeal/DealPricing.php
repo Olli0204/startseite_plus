@@ -208,7 +208,7 @@ final class DealPricing
     }
 
     /**
-     * Regeln aller freigeschalteten Deals, die gerade laufen.
+     * Regeln aller Deals, die gerade laufen und für diese Sitzung gelten: freigeschaltet (Link/Code) oder öffentlich.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -218,16 +218,14 @@ final class DealPricing
             return self::$active;
         }
         $unlocked = self::unlockedIDs();
-        if ($unlocked === []) {
-            return self::$active = [];
-        }
-        $running = [];
+        $running  = [];
         try {
-            $pages = $this->db->getObjects(
-                'SELECT * FROM ' . DealPageService::TABLE . ' WHERE id IN (' . \implode(',', $unlocked) . ')'
-            );
-            foreach ($pages as $page) {
-                if (DealPageService::status($page) === 'active') {
+            // laufende Seiten, die diese Sitzung freigeschaltet hat oder die schon für alle Kunden gelten (public_from)
+            foreach ($this->db->getObjects('SELECT * FROM ' . DealPageService::TABLE . ' WHERE active = 1') as $page) {
+                if (DealPageService::status($page) !== 'active') {
+                    continue;
+                }
+                if (\in_array((int)$page->id, $unlocked, true) || DealPageService::isPublic($page)) {
                     $running[] = (int)$page->id;
                 }
             }

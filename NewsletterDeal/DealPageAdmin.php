@@ -76,6 +76,7 @@ final class DealPageAdmin
             if ($id > 0) {
                 $this->db->delete(DealPageService::TABLE, 'id', $id);
                 $this->db->delete(DealPricing::TABLE_RULES, 'deal_id', $id);
+                DealCache::purge();
                 $this->flash('Deal-Seite gelöscht.');
             }
             $this->redirect([]);
@@ -84,6 +85,7 @@ final class DealPageAdmin
             $row = $this->service()->find($id);
             if ($row !== null) {
                 $this->db->update(DealPageService::TABLE, 'id', $id, (object)['active' => (int)$row->active === 1 ? 0 : 1]);
+                DealCache::purge();
                 $this->flash((int)$row->active === 1 ? 'Deal-Seite deaktiviert.' : 'Deal-Seite aktiviert.');
             }
             $this->redirect([]);
@@ -102,12 +104,15 @@ final class DealPageAdmin
         // NiceDB macht aus null einen Leerstring (ungültig für DATETIME); '_DBNULL_' schreibt echtes NULL
         $data->valid_from  ??= '_DBNULL_';
         $data->valid_until ??= '_DBNULL_';
+        $data->public_from ??= '_DBNULL_';
         if ($id > 0 && $this->service()->find($id) !== null) {
             $this->db->update(DealPageService::TABLE, 'id', $id, $data);
         } else {
             $id = $this->db->insert(DealPageService::TABLE, $data);
         }
         $this->saveRules($id, $rules);
+        // gecachte Seiten (Platzhalter, Hero-Slide) sofort neu aufbauen lassen
+        DealCache::purge();
         $this->flash('Deal-Seite gespeichert.');
         $this->redirect($action === 'save_continue' ? ['nld' => 'edit', 'nld_id' => $id] : []);
     }
@@ -135,7 +140,7 @@ final class DealPageAdmin
 
         $errors     = [];
         $row->rules = $this->rulesFromPost($errors);
-        foreach (['valid_from' => 'Start', 'valid_until' => 'Ende'] as $field => $label) {
+        foreach (['valid_from' => 'Start', 'valid_until' => 'Ende', 'public_from' => 'Für alle Kunden ab'] as $field => $label) {
             $raw = \str_replace('T', ' ', \trim((string)($_POST['nld_' . $field] ?? '')));
             $ts  = $raw !== '' ? \strtotime($raw) : null;
             if ($ts === false) {
@@ -200,6 +205,7 @@ final class DealPageAdmin
             'rules'       => [],
             'valid_from'  => null,
             'valid_until' => null,
+            'public_from' => null,
             'active'      => 1,
         ];
     }
@@ -236,6 +242,7 @@ final class DealPageAdmin
             ], \is_array($row->rules ?? null) ? $row->rules : $this->loadRules((int)$row->id)),
             'valid_from'  => $input($row->valid_from ?? null),
             'valid_until' => $input($row->valid_until ?? null),
+            'public_from' => $input($row->public_from ?? null),
             'active'      => (int)$row->active === 1,
             'url'         => (int)$row->id > 0 ? DealPageService::url((string)$row->slug, $this->langID('ger')) : '',
             'previewUrl'  => (int)$row->id > 0 ? DealPageService::previewUrl((string)$row->slug, $this->langID('ger')) : '',
@@ -298,6 +305,8 @@ final class DealPageAdmin
                     default                       => 'unbegrenzt',
                 },
                 'active'      => (int)$row->active === 1,
+                'public'      => DealPageService::isPublic($row),
+                'publicFrom'  => $format($row->public_from ?? null),
                 'statusLabel' => $labels[$status][0],
                 'statusClass' => $labels[$status][1],
             ];
