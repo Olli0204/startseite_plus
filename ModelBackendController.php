@@ -86,8 +86,12 @@ class ModelBackendController extends GenericModelController
             ->assign('step', $tab)
             ->assign('tab', $tab)
             ->assign('action', $this->plugin->getPaths()->getBackendURL())
-            ->assign('defaultTabbertab', $this->menuID)
             ->assign('now', \date('Y-m-d H:i:s'));
+        // Nach der PRG-Weiterleitung des Countdown-Formulars fehlt die Tab-Angabe – dann diesen Tab öffnen.
+        // Verlangt die URL einen anderen Tab (z. B. Newsletter-Deals), bleibt die Auswahl des Cores bestehen.
+        if (Request::verifyGPCDataInt('kPluginAdminMenu') === 0 && Request::verifyGPDataString('cPluginTab') === '') {
+            $smarty->assign('defaultTabbertab', $this->menuID);
+        }
 
         return $this->handle(__DIR__ . '/adminmenu/templates/countdowns.tpl');
     }

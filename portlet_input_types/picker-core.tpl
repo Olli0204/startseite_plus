@@ -3,7 +3,8 @@
     Eingebunden von couponpicker.tpl, productpicker.tpl und repeater.tpl (Feldtypen "coupon" / "products").
 
     Markup eines Pickers:
-      <div class="sp-picker" data-sp-picker="coupon|products|category" data-max="4" data-empty="…" data-placeholder="…">
+      <div class="sp-picker" data-sp-picker="coupon|products|category" data-max="4" data-empty="…" data-placeholder="…"
+           [data-parents-ok]>   (Vaterartikel sind erwünscht, z. B. Newsletter-Deal-Seiten: kein Varianten-Hinweis)
           <input type="hidden" class="sp-picker-value" name="…" value="…">
           <div class="sp-picker-ui"></div>
       </div>
@@ -70,8 +71,22 @@
             return node;
         };
 
+        // OPC-Editor: window.opc.io; Plugin-Tab im Backend (Newsletter-Deals): globales ioCall() aus global.js
+        var ioRequest = function (name, args) {
+            if (window.opc && window.opc.io) {
+                return window.opc.io.ioCall.apply(window.opc.io, [name].concat(args));
+            }
+            if (typeof window.ioCall === 'function') {
+                return Promise.resolve(window.ioCall(name, args, function () {}, function () {}, {}, true))
+                    .catch(function (xhr) {
+                        throw new Error(xhr && xhr.statusText ? xhr.statusText : 'Anfrage fehlgeschlagen');
+                    });
+            }
+            return Promise.reject(new Error('Keine IO-Schnittstelle gefunden'));
+        };
+
         var call = function (name, args) {
-            return window.opc.io.ioCall.apply(window.opc.io, [name].concat(args)).then(function (res) {
+            return ioRequest(name, args).then(function (res) {
                 if (typeof res === 'string') {
                     try { res = JSON.parse(res); } catch (e) { res = []; }
                 }
@@ -82,7 +97,7 @@
             });
         };
 
-        var productItem = function (item, withHandle) {
+        var productItem = function (item, withHandle, parentsOk) {
             var li = el('li', 'sp-pp-item');
             li.setAttribute('data-key', item.id);
             if (withHandle) {
@@ -103,7 +118,8 @@
             text.appendChild(el('span', 'sp-pp-name', item.name));
             var meta = el('span', 'sp-pp-meta', 'Art.-Nr. ' + (item.artNr || '–') + (item.variant ? ' · ' + item.variant : ''));
             if (item.variations) {
-                meta.appendChild(el('span', 'sp-pp-badge', 'Vaterartikel – Variante wählen'));
+                meta.appendChild(el('span', 'sp-pp-badge' + (parentsOk ? ' sp-pp-badge--variant' : ''),
+                    parentsOk ? 'Vaterartikel' : 'Vaterartikel – Variante wählen'));
             } else if (item.child) {
                 meta.appendChild(el('span', 'sp-pp-badge sp-pp-badge--variant', 'Variante'));
             }
@@ -166,7 +182,7 @@
             var buildItem = function (item, withHandle) {
                 if (isCoupon) { return couponItem(item); }
                 if (isCategory) { return categoryItem(item); }
-                return productItem(item, withHandle);
+                return productItem(item, withHandle, root.hasAttribute('data-parents-ok'));
             };
             var input   = root.querySelector('.sp-picker-value');
             var ui      = root.querySelector('.sp-picker-ui');
