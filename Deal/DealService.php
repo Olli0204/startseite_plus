@@ -10,6 +10,7 @@ use JTL\Catalog\Product\Preise;
 use JTL\Checkout\Kupon;
 use JTL\DB\DbInterface;
 use JTL\Helpers\Form;
+use JTL\Helpers\Product;
 use JTL\Session\Frontend;
 use JTL\Shop;
 use Plugin\startseite_plus\Countdown\CountdownService;
@@ -849,19 +850,40 @@ class DealService
     private function variationProperties(int $productID): array
     {
         try {
-            $row = $this->db->getSingleObject(
-                'SELECT kEigenschaftKombi FROM tartikel WHERE kArtikel = :id',
-                ['id' => $productID]
-            );
-            if ($row === null || (int)$row->kEigenschaftKombi <= 0) {
-                return [];
-            }
-
-            return \JTL\Helpers\Product::getSelectedPropertiesForVarCombiArticle($productID);
+            return self::cartProperties($productID);
         } catch (\Throwable $e) {
             $this->logError($e);
 
             return [];
+        }
+    }
+
+    /**
+     * Variationswerte eines Kinderartikels für CartHelper::addProductIDToCart() (normale Artikel: leer).
+     * Der Core-Helper liest die gewählten Werte aus $_POST['eigenschaftwert'] (Formular der Artikelseite) und
+     * leitet ohne sie per header('Location: …&r=R_VARWAEHLEN') + exit um – mitten im IO-Aufruf, die Antwort war
+     * dann eine HTML-Seite statt JSON. Deshalb die Werte der Kombination für den Aufruf selbst einsetzen.
+     *
+     * @return array<mixed>
+     */
+    public static function cartProperties(int $productID): array
+    {
+        $parentID = 0;
+        $values   = Product::getPropertiesForVarCombiArticle($productID, $parentID);
+        if ($values === []) {
+            return [];
+        }
+        $hadPost  = \array_key_exists('eigenschaftwert', $_POST);
+        $previous = $_POST['eigenschaftwert'] ?? null;
+        $_POST['eigenschaftwert'] = $values;
+        try {
+            return Product::getSelectedPropertiesForVarCombiArticle($productID);
+        } finally {
+            if ($hadPost) {
+                $_POST['eigenschaftwert'] = $previous;
+            } else {
+                unset($_POST['eigenschaftwert']);
+            }
         }
     }
 

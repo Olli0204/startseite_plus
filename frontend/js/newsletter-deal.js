@@ -20,19 +20,122 @@
         return base.replace(/\/$/, '') + '/io';
     };
 
-    var row = function (label, value, extraClass) {
-        var div = document.createElement('div');
-        div.className = 'sp-nld-price__row' + (extraClass ? ' ' + extraClass : '');
-        var l = document.createElement('span');
-        l.className = 'sp-nld-price__label';
-        l.textContent = label;
-        var v = document.createElement('strong');
-        v.className = 'sp-nld-price__value';
-        v.textContent = value;
-        div.appendChild(l);
-        div.appendChild(document.createTextNode(' '));
-        div.appendChild(v);
+    var el = function (tag, cls, text) {
+        var node = document.createElement(tag);
+        if (cls) {
+            node.className = cls;
+        }
+        if (text !== undefined && text !== null) {
+            node.textContent = text;
+        }
+        return node;
+    };
+
+    /* Zeile "Label 150,00 €" (Label normal, Preis fett) */
+    var line = function (parts) {
+        var div = el('div', 'sp-nld-line');
+        parts.forEach(function (part, i) {
+            if (i > 0) {
+                div.appendChild(el('span', 'sp-nld-line__sep', '·'));
+            }
+            div.appendChild(el('span', 'sp-nld-line__label', part[0] + ' '));
+            div.appendChild(el('strong', 'sp-nld-line__value', part[1]));
+        });
         return div;
+    };
+
+    /* Preisblock (.price_wrapper) zum Platzhalter: der Platzhalter steht direkt dahinter (ggf. nach link/script) */
+    var priceWrapper = function (box) {
+        var node = box.previousElementSibling;
+        while (node && !(node.classList && node.classList.contains('price_wrapper'))) {
+            node = node.previousElementSibling;
+        }
+        return node;
+    };
+
+    var noteArea = function (wrapper) {
+        var note = wrapper.querySelector('.price-note');
+        if (!note) {
+            note = wrapper.appendChild(el('div', 'price-note'));
+        }
+        return note;
+    };
+
+    /* Darstellung "Zeile im Preisblock" */
+    var renderLine = function (wrapper, single, sets, isDetail) {
+        var note = noteArea(wrapper);
+        if (isDetail) {
+            if (single) {
+                note.appendChild(line([[labels.price, single]]));
+            }
+            sets.forEach(function (set) {
+                note.appendChild(line([[set.label + ':', set.price]]));
+            });
+            return;
+        }
+        // Kachel: eine kurze Zeile, Set nur als "im Set 100,00 €"
+        var parts = [];
+        if (single) {
+            parts.push([labels.price, single]);
+        }
+        if (sets.length) {
+            parts.push([labels.inSet, sets[0].price]);
+        }
+        note.appendChild(line(parts));
+    };
+
+    /* Darstellung "Als Hauptpreis": Newsletter-Preis in den großen Preis, Shop-Preis in "Alter Preis" */
+    var renderMain = function (wrapper, single, sets, isDetail) {
+        var priceEl = wrapper.querySelector('.price');
+        var span = priceEl ? priceEl.querySelector('span') : null;
+        var textNode = null;
+        if (span) {
+            for (var i = 0; i < span.childNodes.length; i++) {
+                if (span.childNodes[i].nodeType === 3 && span.childNodes[i].nodeValue.trim() !== '') {
+                    textNode = span.childNodes[i];
+                    break;
+                }
+            }
+        }
+        if (!single || !textNode) {
+            renderLine(wrapper, single, sets, isDetail);
+            return;
+        }
+        var shopPrice = textNode.nodeValue.trim();
+        textNode.nodeValue = ' ' + single + ' ';
+        priceEl.classList.add('special-price', 'sp-nld-main');
+        priceEl.insertAdjacentElement('afterend', el('span', 'sp-nld-tag', labels.badge));
+        var note = noteArea(wrapper);
+        var old = wrapper.querySelector('.old-price-value');
+        if (old) {
+            old.textContent = shopPrice;
+        } else if (isDetail) {
+            var detailOld = el('div', 'text-danger text-stroke text-nowrap-util sp-nld-old', labels.oldPrice + ': ');
+            detailOld.appendChild(el('span', 'old-price-value', shopPrice));
+            note.appendChild(detailOld);
+        } else {
+            var tileOld = el('div', 'instead-of old-price sp-nld-old');
+            var small = tileOld.appendChild(el('small', 'text-muted-util', labels.oldPrice + ': '));
+            small.appendChild(el('del', 'value old-price-value', shopPrice));
+            note.appendChild(tileOld);
+        }
+        if (isDetail) {
+            sets.forEach(function (set) {
+                note.appendChild(line([[set.label + ':', set.price]]));
+            });
+        }
+    };
+
+    /* Darstellung "Marke am Produktbild" (Kachel); auf der Artikelseite Zeile im Preisblock */
+    var renderBadge = function (box, wrapper, single, sets, isDetail) {
+        var tile = box.closest('.productbox');
+        var image = tile ? tile.querySelector('.productbox-image') : null;
+        if (isDetail || !image) {
+            renderLine(wrapper, single, sets, isDetail);
+            return;
+        }
+        var text = single ? labels.badge + ' ' + single : labels.setBadge + ' ' + sets[0].price;
+        image.appendChild(el('span', 'sp-nld-ribbon', text));
     };
 
     var render = function (box) {
@@ -41,14 +144,31 @@
         if (!entry || !labels) {
             return;
         }
-        box.textContent = '';
-        if (entry.price) {
-            box.appendChild(row(labels.price, entry.price));
-        }
-        (entry.sets || []).forEach(function (set) {
-            box.appendChild(row(set.label, set.price, 'sp-nld-price__row--set'));
+        // nur zeigen, was günstiger als der aktuelle Shop-Preis ist (z. B. nicht 120 € bei Sale-Preis 118,95 €)
+        var current = parseFloat(box.getAttribute('data-sp-nld-current') || '0') || 0;
+        var cheaper = function (value) {
+            return typeof value === 'number' && (current <= 0 || value < current - 0.005);
+        };
+        var single = entry.price && cheaper(entry.value) ? entry.price : '';
+        var sets = (entry.sets || []).filter(function (set) {
+            return cheaper(set.value);
         });
-        box.hidden = !box.children.length;
+        if (!single && !sets.length) {
+            return;
+        }
+        var wrapper = priceWrapper(box);
+        if (!wrapper) {
+            return;
+        }
+        var isDetail = box.classList.contains('sp-nld-price--detail');
+        wrapper.classList.add('sp-nld-has-deal');
+        if (entry.mode === 'price') {
+            renderMain(wrapper, single, sets, isDetail);
+        } else if (entry.mode === 'badge') {
+            renderBadge(box, wrapper, single, sets, isDetail);
+        } else {
+            renderLine(wrapper, single, sets, isDetail);
+        }
     };
 
     var scan = function () {
@@ -113,17 +233,6 @@
         }).then(function (response) {
             return response.json();
         });
-    };
-
-    var el = function (tag, cls, text) {
-        var node = document.createElement(tag);
-        if (cls) {
-            node.className = cls;
-        }
-        if (text !== undefined && text !== null) {
-            node.textContent = text;
-        }
-        return node;
     };
 
     var buildSlot = function (options, setLabels, current, onChange) {

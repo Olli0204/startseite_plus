@@ -274,6 +274,25 @@
                             dem Odyssey als Set-Partner. Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.</small>
                     </div>
                 </div>
+                <div class="form-group form-row">
+                    <label class="col col-sm-4 col-form-label text-sm-right">Darstellung des Newsletter-Preises:</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        {foreach [
+                            'line'  => ['Zeile im Preisblock', 'Der Shop-Preis bleibt groß; darunter eine schlichte Zeile „Newsletter-Preis 150,00 €“ (bei Set-Artikeln in der Kachel kurz „im Set 100,00 €“).'],
+                            'price' => ['Als Hauptpreis', 'Der Newsletter-Preis wird zum großen Preis, der aktuelle Shop-Preis rutscht in „Alter Preis“, dazu eine kleine Marke „Newsletter“. Die Kachel wird nicht höher.'],
+                            'badge' => ['Marke am Produktbild', 'Preisblock unverändert; oben rechts am Produktbild eine Marke „Newsletter 150 €“. Auf der Artikelseite eine Zeile im Preisblock.']
+                        ] as $mode => $info}
+                            <div class="custom-control custom-radio mb-2">
+                                <input class="custom-control-input" type="radio" id="nld_display_{$mode}" name="nld_display" value="{$mode}"{if $nldForm.display === $mode} checked{/if}>
+                                <label class="custom-control-label" for="nld_display_{$mode}">
+                                    <strong>{$info[0]}</strong><br><small class="sp-nld-muted">{$info[1]}</small>
+                                </label>
+                            </div>
+                        {/foreach}
+                        <small class="text-muted">Gilt nur für Kunden mit freigeschaltetem Deal; alle anderen sehen den normalen Shop.
+                            Der Hinweis erscheint nur, wenn der Newsletter-Preis unter dem aktuellen Shop-Preis liegt.</small>
+                    </div>
+                </div>
                 <div class="form-group form-row align-items-center">
                     <label class="col col-sm-4 col-form-label text-sm-right" for="nld_code">Deal-Code (optional):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
