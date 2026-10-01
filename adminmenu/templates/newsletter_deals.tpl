@@ -53,15 +53,18 @@
                                     <span class="sp-nld-muted">{$page.title|escape:'html'}</span>
                                 </td>
                                 <td style="max-width: 22rem">
-                                    <div class="sp-nld-url">
-                                        <code title="{$page.url|escape:'html'}">{$page.url|escape:'html'}</code>
-                                        <button type="button" class="btn btn-link px-1" data-sp-nld-copy="{$page.url|escape:'html'}" title="Link kopieren">
-                                            <span class="fal fa-copy"></span>
-                                        </button>
-                                        <a class="btn btn-link px-1" href="{$page.previewUrl|escape:'html'}" target="_blank" rel="noopener" title="Seite öffnen (mit Admin-Vorschau)">
-                                            <span class="fal fa-external-link"></span>
-                                        </a>
-                                    </div>
+                                    {foreach [['DE', $page.url, $page.previewUrl], ['EN', $page.urlEn, $page.previewUrlEn]] as $link}
+                                        <div class="sp-nld-url">
+                                            <span class="badge badge-light">{$link[0]}</span>
+                                            <code title="{$link[1]|escape:'html'}">{$link[1]|escape:'html'}</code>
+                                            <button type="button" class="btn btn-link px-1" data-sp-nld-copy="{$link[1]|escape:'html'}" title="Link kopieren">
+                                                <span class="fal fa-copy"></span>
+                                            </button>
+                                            <a class="btn btn-link px-1" href="{$link[2]|escape:'html'}" target="_blank" rel="noopener" title="Seite öffnen (mit Admin-Vorschau)">
+                                                <span class="fal fa-external-link"></span>
+                                            </a>
+                                        </div>
+                                    {/foreach}
                                 </td>
                                 <td>{$page.period|escape:'html'}</td>
                                 <td>{if $page.coupon !== ''}<code>{$page.coupon|escape:'html'}</code>{else}<span class="sp-nld-muted">–</span>{/if}</td>
@@ -127,7 +130,7 @@
                     </div>
                 </div>
                 <div class="form-group form-row align-items-center">
-                    <label class="col col-sm-4 col-form-label text-sm-right" for="nld_slug">Geheimer Link:</label>
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="nld_slug">Geheimer Link (DE):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <div class="input-group">
                             <div class="input-group-prepend"><span class="input-group-text sp-nld-prefix">{$nldShopUrl|escape:'html'}</span></div>
@@ -149,6 +152,30 @@
                         </div>
                         <small class="text-muted">Nur Kleinbuchstaben, Ziffern und Bindestriche. Die Zufallsendung macht den Link
                             unerratbar. Wird der Link geändert, funktioniert der alte nicht mehr.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="nld_slug_en">Geheimer Link (EN):</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <div class="input-group">
+                            <div class="input-group-prepend"><span class="input-group-text sp-nld-prefix">{$nldShopUrl|escape:'html'}</span></div>
+                            <input type="text" class="form-control" id="nld_slug_en" name="nld_slug_en" maxlength="120"
+                                   pattern="[a-z0-9]+(-[a-z0-9]+)*" value="{$nldForm.slug_en|escape:'html'}" placeholder="leer = deutscher Link + „-en“">
+                            {if $nldForm.urlEn !== ''}
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-outline-primary" data-sp-nld-copy="{$nldForm.urlEn|escape:'html'}" title="Link kopieren">
+                                        <i class="fal fa-copy"></i>
+                                    </button>
+                                    <a class="btn btn-outline-primary" href="{$nldForm.previewUrlEn|escape:'html'}" target="_blank" rel="noopener" title="Seite öffnen (mit Admin-Vorschau)">
+                                        <i class="fal fa-external-link"></i>
+                                    </a>
+                                </div>
+                            {/if}
+                        </div>
+                        <small class="text-muted">Für den englischen Newsletter: zeigt die Seite auf Englisch (Überschrift/Text EN,
+                            Artikelnamen, Preise und Hinweise). Wie bei Kategorien bestimmt der Link die Sprache; der
+                            Sprachumschalter im Shop wechselt zwischen beiden Links.{if !$nldForm.hasEnglish}
+                            <strong>Hinweis: Im Shop ist keine englische Sprache aktiv.</strong>{/if}</small>
                     </div>
                 </div>
                 <div class="form-group form-row align-items-center">
@@ -270,6 +297,7 @@
                 window.crypto.getRandomValues(bytes);
                 var hex = Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
                 document.getElementById('nld_slug').value = '{$nldPrefix|escape:'javascript'}-' + hex;
+                document.getElementById('nld_slug_en').value = '{$nldPrefix|escape:'javascript'}-' + hex + '-en';
             });
         }
         root.addEventListener('click', function (event) {

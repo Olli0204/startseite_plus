@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Plugin\startseite_plus\NewsletterDeal;
 
 use JTL\Filter\States\DummyState;
+use JTL\Language\LanguageHelper;
 use JTL\Router\Controller\DefaultController;
 use JTL\Router\Controller\ProductListController;
 use JTL\Router\Router;
@@ -45,15 +46,53 @@ final class DealPageRoute
 
     public static function register(Router $router): void
     {
-        foreach (DealPageService::create()->routes() as $id => $slug) {
+        foreach (DealPageService::create()->routes() as $route) {
             // Slug besteht nur aus [a-z0-9-] (isValidSlug), kein Escaping nötig. Keine Capture-Groups (FastRoute).
+            $id   = $route['id'];
+            $lang = $route['lang'];
             $router->addRoute(
-                '/{spnld:' . $slug . '(?:(?:' . \SEP_SEITE . '|' . \SEP_KAT . '|' . \SEP_MERKMAL . ')[^/]*)?}',
+                '/{spnld:' . $route['slug'] . '(?:(?:' . \SEP_SEITE . '|' . \SEP_KAT . '|' . \SEP_MERKMAL . ')[^/]*)?}',
                 static fn(ServerRequestInterface $request, array $args, JTLSmarty $smarty): ResponseInterface
-                    => self::handle($id, $request, $args, $smarty),
-                'startseite_plus_nld_' . $id
+                    => self::handle($id, $lang, $request, $args, $smarty),
+                'startseite_plus_nld_' . $id . '_' . $lang
             );
         }
+    }
+
+    /**
+     * Sprach-IDs des Shops nach ISO-Code (z. B. ['ger' => 1, 'eng' => 2]).
+     *
+     * @return array<string, int>
+     */
+    public static function languageIDs(): array
+    {
+        $ids = [];
+        try {
+            foreach (LanguageHelper::getAllLanguages() as $language) {
+                $ids[(string)$language->getCode()] = (int)$language->getId();
+            }
+        } catch (\Throwable) {
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Slug je Sprach-ID für die Links der Liste (Seiten, Filter, Sprachumschalter): Englisch bekommt den englischen
+     * Link, alle anderen Sprachen den deutschen.
+     *
+     * @param array<string, int> $languageIDs
+     * @return array<int, string>
+     */
+    public static function slugsByLanguage(stdClass $page, array $languageIDs): array
+    {
+        $slugs  = [];
+        $slugEn = (string)($page->slug_en ?? '');
+        foreach ($languageIDs as $iso => $langID) {
+            $slugs[$langID] = $iso === 'eng' && DealPageService::isValidSlug($slugEn) ? $slugEn : (string)$page->slug;
+        }
+
+        return $slugs;
     }
 
     /**
@@ -81,7 +120,13 @@ final class DealPageRoute
     /**
      * @param array<string, string> $args
      */
-    private static function handle(int $id, ServerRequestInterface $request, array $args, JTLSmarty $smarty): ResponseInterface
+    private static function handle(
+        int $id,
+        string $lang,
+        ServerRequestInterface $request,
+        array $args,
+        JTLSmarty $smarty
+    ): ResponseInterface
     {
         $db      = Shop::Container()->getDB();
         $cache   = Shop::Container()->getCache();
@@ -104,6 +149,12 @@ final class DealPageRoute
         }
 
         self::$current = $page;
+        // Wie bei Kategorie-URLs bestimmt der Link die Sprache: updateState() übernimmt state->languageID in
+        // Shop::updateLanguage(), bevor der Produktfilter initialisiert wird (Session-Sprache wechselt mit).
+        $languageIDs = self::languageIDs();
+        if (isset($languageIDs[$lang])) {
+            $state->languageID = $languageIDs[$lang];
+        }
         // liest Seiten-/Filter-Teile aus dem Slug und den GET-Parametern und ruft ProductFilter::initStates() auf
         // (ungültige Filter-Slugs setzen is404 – dann liefert ProductListController::init() false → 404)
         $default->getStateFromSlug(['slug' => $slug]);
@@ -111,11 +162,12 @@ final class DealPageRoute
 
         $isExpired     = DealPageService::status($page) === 'expired';
         $productFilter = Shop::getProductFilter();
+        $title         = $lang === 'eng' && \trim((string)$page->title_en) !== '' ? (string)$page->title_en : (string)$page->title;
         $productFilter->setBaseState(DealPageState::create(
             $productFilter,
             (int)$page->id,
-            (string)$page->slug,
-            (string)$page->title,
+            self::slugsByLanguage($page, $languageIDs),
+            $title,
             $isExpired ? [] : $service->listProductIDs($page)
         ));
 

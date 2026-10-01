@@ -122,6 +122,7 @@ final class DealPageAdmin
         $row->text    = \mb_substr(\trim((string)($_POST['nld_text'] ?? '')), 0, 2000);
         $row->text_en = \mb_substr(\trim((string)($_POST['nld_text_en'] ?? '')), 0, 2000);
         $row->slug    = DealPageService::normalizeSlug((string)($_POST['nld_slug'] ?? ''));
+        $row->slug_en = DealPageService::normalizeSlug((string)($_POST['nld_slug_en'] ?? ''));
         $row->coupon  = \mb_substr(\trim((string)($_POST['nld_coupon'] ?? '')), 0, 255);
         $row->products = \implode(';', DealPageService::parseIds((string)($_POST['nld_products'] ?? '')));
         $row->active   = isset($_POST['nld_active']) ? 1 : 0;
@@ -145,9 +146,17 @@ final class DealPageAdmin
         if ($row->slug === '') {
             $row->slug = DealPageService::randomSlug();
         }
+        if ($row->slug_en === '') {
+            $row->slug_en = DealPageService::englishSlug($row->slug);
+        }
         $slugProblem = $this->service()->slugProblem($row->slug, $id);
         if ($slugProblem !== '') {
             $errors[] = $slugProblem;
+        }
+        if ($row->slug_en === $row->slug) {
+            $errors[] = 'Der englische Link muss sich vom deutschen unterscheiden.';
+        } elseif (($problemEn = $this->service()->slugProblem($row->slug_en, $id)) !== '') {
+            $errors[] = 'Englischer Link: ' . $problemEn;
         }
         $from  = DealPageService::timestamp($row->valid_from);
         $until = DealPageService::timestamp($row->valid_until);
@@ -163,10 +172,13 @@ final class DealPageAdmin
 
     private function emptyRow(): stdClass
     {
+        $slug = DealPageService::randomSlug();
+
         return (object)[
             'id'          => 0,
             'name'        => '',
-            'slug'        => DealPageService::randomSlug(),
+            'slug'        => $slug,
+            'slug_en'     => DealPageService::englishSlug($slug),
             'title'       => '',
             'title_en'    => '',
             'text'        => '',
@@ -194,6 +206,7 @@ final class DealPageAdmin
             'id'          => (int)$row->id,
             'name'        => (string)$row->name,
             'slug'        => (string)$row->slug,
+            'slug_en'     => (string)($row->slug_en ?? ''),
             'title'       => (string)$row->title,
             'title_en'    => (string)$row->title_en,
             'text'        => (string)($row->text ?? ''),
@@ -203,8 +216,11 @@ final class DealPageAdmin
             'valid_from'  => $input($row->valid_from ?? null),
             'valid_until' => $input($row->valid_until ?? null),
             'active'      => (int)$row->active === 1,
-            'url'         => (int)$row->id > 0 ? DealPageService::url((string)$row->slug) : '',
-            'previewUrl'  => (int)$row->id > 0 ? DealPageService::previewUrl((string)$row->slug) : '',
+            'url'         => (int)$row->id > 0 ? DealPageService::url((string)$row->slug, $this->langID('ger')) : '',
+            'previewUrl'  => (int)$row->id > 0 ? DealPageService::previewUrl((string)$row->slug, $this->langID('ger')) : '',
+            'urlEn'       => (int)$row->id > 0 ? DealPageService::url((string)$row->slug_en, $this->langID('eng')) : '',
+            'previewUrlEn' => (int)$row->id > 0 ? DealPageService::previewUrl((string)$row->slug_en, $this->langID('eng')) : '',
+            'hasEnglish'  => $this->langID('eng') !== null,
         ];
     }
 
@@ -225,7 +241,10 @@ final class DealPageAdmin
             return $ts === null ? '' : \date('d.m.Y H:i', $ts);
         };
 
-        return \array_map(static function (stdClass $row) use ($labels, $format): array {
+        $langDe = $this->langID('ger');
+        $langEn = $this->langID('eng');
+
+        return \array_map(static function (stdClass $row) use ($labels, $format, $langDe, $langEn): array {
             $status = DealPageService::status($row);
             $from   = $format($row->valid_from ?? null);
             $until  = $format($row->valid_until ?? null);
@@ -234,8 +253,10 @@ final class DealPageAdmin
                 'id'          => (int)$row->id,
                 'name'        => (string)$row->name,
                 'title'       => (string)$row->title,
-                'url'         => DealPageService::url((string)$row->slug),
-                'previewUrl'  => DealPageService::previewUrl((string)$row->slug),
+                'url'         => DealPageService::url((string)$row->slug, $langDe),
+                'previewUrl'  => DealPageService::previewUrl((string)$row->slug, $langDe),
+                'urlEn'       => DealPageService::url((string)$row->slug_en, $langEn),
+                'previewUrlEn' => DealPageService::previewUrl((string)$row->slug_en, $langEn),
                 'coupon'      => (string)$row->coupon,
                 'count'       => \count(DealPageService::parseIds($row->products ?? '')),
                 'period'      => match (true) {
@@ -249,6 +270,17 @@ final class DealPageAdmin
                 'statusClass' => $labels[$status][1],
             ];
         }, $this->service()->all());
+    }
+
+    /**
+     * Sprach-ID für die Links (null = Sprache nicht im Shop, Link nutzt die Standard-URL).
+     */
+    private function langID(string $iso): ?int
+    {
+        static $ids = null;
+        $ids ??= DealPageRoute::languageIDs();
+
+        return $ids[$iso] ?? null;
     }
 
     private function service(): DealPageService

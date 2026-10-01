@@ -163,6 +163,9 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   ihren Vaterartikel in die Liste.
 - Erreichbar nur über den **geheimen Link** `https://<shop>/newsletter-deals-<zufall>` (frei änderbar, Kollisionen mit
   Shop-URLs werden abgelehnt). Kein Menüeintrag, `noindex, nofollow`.
+- **Deutsch und Englisch (seit 2.12.0):** jede Seite hat einen deutschen und einen englischen Link (Standard
+  `<deutscher Link>-en`). Wie bei Kategorien bestimmt der Link die Sprache (Session-Sprache wechselt mit): Überschrift/Text
+  EN, Artikelnamen, Preise und Hinweise auf Englisch; der Sprachumschalter wechselt zwischen beiden Links.
 - Kopf der Liste: Überschrift, Text (DE/EN) und – mit Kupon – eine Code-Karte mit Rabatt, Kopieren-Button, Gültigkeit und
   Countdown. Der Rabatt kommt aus dem JTL-Kupon; damit er nur für die Deal-Artikel gilt, im Kupon die Artikel hinterlegen.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
@@ -196,6 +199,11 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.12.0
+- Newsletter-Deals auf Englisch: eigener englischer Link je Seite (Spalte `slug_en`, Migration setzt `<slug>-en`),
+  Route stellt die Sprache um, Sprachumschalter und alle Listen-Links nutzen den Link der jeweiligen Sprache
+- Kompatibel mit JTL-Shop 5.8.1 (MaxShopVersion 5.8.1; genutzte Core-Dateien 5.8.0 = 5.8.1)
 
 ### 2.11.0
 - Neu: Newsletter-Deals – versteckte Artikellisten mit Kupon-Code, nur per geheimem Link (Admin-Tab „Newsletter-Deals“)
