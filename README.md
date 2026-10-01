@@ -180,6 +180,11 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   IO (`startseitePlusNlDealPrices`) ausschließlich für freigeschaltete Sitzungen nach. Deal-Seiten senden
   `X-LiteSpeed-Cache-Control: no-cache`. **Nach dem Update einmal den LiteSpeed-Cache leeren.**
   Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.
+- **Darstellung des Newsletter-Preises (seit 2.15.0), je Deal-Seite wählbar:** *Zeile im Preisblock* (Standard; Kachel
+  kurz „Newsletter-Preis 150,00 € · im Set 100,00 €“), *Als Hauptpreis* (Newsletter-Preis wird zum großen Preis, der
+  Shop-Preis rutscht in „Alter Preis“, Marke „Newsletter“) oder *Marke am Produktbild* (unten links; Artikelseite: Zeile).
+  Hinweise erscheinen nur, wenn der Deal-Preis unter dem aktuellen Shop-Preis liegt (`data-sp-nld-current`); Set-Partner
+  werden unter ihrem Vaterartikel zusammengefasst (kein „Odyssey / Odyssey 147 / Odyssey 155“ mehr).
 - **Set-Konfigurator (seit 2.14.0):** zu jeder Set-Regel eine Karte mit beiden Artikeln (Bild, Deal-Preis, „statt“-Preis,
   Größen-/Variantenauswahl, ausverkaufte Größen gesperrt, Auswahl bei mehreren Set-Partnern) und „Set in den Warenkorb –
   350 €“ – auf der Deal-Seite über der Liste und auf den Artikelseiten von Set-Artikel und Set-Partner unter der Kaufbox
@@ -216,6 +221,11 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.15.0
+- Newsletter-Deals: Darstellung des Newsletter-Preises je Deal-Seite (Zeile im Preisblock / als Hauptpreis / Marke am
+  Bild) statt des gestrichelten Kastens; Hinweis nur, wenn günstiger als der aktuelle Shop-Preis; Set-Partner und
+  Konfigurator-Optionen zu Vaterartikeln zusammengefasst
 
 ### 2.14.0
 - Newsletter-Deals: Set-Konfigurator (Board- und Bindungsgröße wählen, beides mit einem Klick in den Warenkorb) auf der

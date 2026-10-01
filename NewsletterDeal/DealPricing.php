@@ -436,11 +436,14 @@ final class DealPricing
 
     /* ------------------------------------------------------------- Anzeige */
 
+    public const DISPLAY_MODES = ['line', 'price', 'badge'];
+
     /**
-     * Hinweise für productdetails/price.tpl (Liste und Artikelseite): kArtikel => Zeilen. Leer, solange der Kunde
-     * keinen laufenden Deal freigeschaltet hat.
+     * Anzeige-Daten für newsletter-deal.js (Liste und Artikelseite): kArtikel => Festpreis, Set-Preise und
+     * Darstellungsart der Deal-Seite. Leer, solange der Kunde keinen laufenden Deal freigeschaltet hat.
      *
-     * @return array<int, array{price: string, sets: array<int, array{price: string, label: string}>}>
+     * @return array<int, array{price: string, value: ?float, mode: string,
+     *     sets: array<int, array{price: string, value: float, label: string}>}>
      */
     public function displayMap(): array
     {
@@ -448,34 +451,105 @@ final class DealPricing
         if ($rules === []) {
             return [];
         }
+        $modes      = $this->displayModes(\array_values(\array_unique(\array_column($rules, 'dealID'))));
         $partnerIDs = [];
         foreach ($rules as $rule) {
             $partnerIDs = \array_merge($partnerIDs, $rule['partners']);
         }
-        $names = $this->productNames($partnerIDs);
-        $map   = [];
+        $names  = $this->partnerNames($partnerIDs);
+        $labels = self::labels();
+        $map    = [];
         foreach ($rules as $rule) {
+            $mode = $modes[$rule['dealID']] ?? 'line';
             foreach ($rule['products'] as $id) {
-                $map[$id] ??= ['price' => null, 'sets' => []];
+                $map[$id] ??= ['value' => null, 'mode' => $mode, 'sets' => [], 'singleMode' => null];
                 if ($rule['type'] === 'price') {
-                    $map[$id]['price'] = $map[$id]['price'] === null ? $rule['price'] : \min($map[$id]['price'], $rule['price']);
+                    if ($map[$id]['value'] === null || $rule['price'] < $map[$id]['value']) {
+                        $map[$id]['value']      = $rule['price'];
+                        $map[$id]['singleMode'] = $mode;
+                    }
                     continue;
                 }
-                $partners           = \implode(' / ', \array_filter(\array_map(
+                // Partner einer Regel: Varianten zum Vaterartikel zusammengefasst, jeder Name nur einmal
+                $partners           = \implode(' / ', \array_values(\array_unique(\array_filter(\array_map(
                     static fn(int $partner): string => $names[$partner] ?? '',
                     $rule['partners']
-                )));
+                )))));
                 $map[$id]['sets'][] = [
                     'price' => self::formatGross($rule['price']),
-                    'label' => \sprintf(self::labels()['set'], $partners),
+                    'value' => $rule['price'],
+                    'label' => $partners !== '' ? \sprintf($labels['set'], $partners) : $labels['inSet'],
                 ];
             }
         }
         foreach ($map as $id => $entry) {
-            $map[$id]['price'] = $entry['price'] === null ? '' : self::formatGross($entry['price']);
+            $map[$id]['mode']  = $entry['singleMode'] ?? $entry['mode'];
+            $map[$id]['price'] = $entry['value'] === null ? '' : self::formatGross($entry['value']);
+            unset($map[$id]['singleMode']);
         }
 
         return $map;
+    }
+
+    /**
+     * Darstellungsart je Deal-Seite (Spalte display, seit 2.15.0).
+     *
+     * @param int[] $dealIDs
+     * @return array<int, string>
+     */
+    private function displayModes(array $dealIDs): array
+    {
+        $dealIDs = \array_values(\array_filter(\array_map('intval', $dealIDs)));
+        if ($dealIDs === []) {
+            return [];
+        }
+        $modes = [];
+        try {
+            foreach ($this->db->getObjects(
+                'SELECT id, display FROM ' . DealPageService::TABLE . ' WHERE id IN (' . \implode(',', $dealIDs) . ')'
+            ) as $row) {
+                $modes[(int)$row->id] = self::displayMode((string)($row->display ?? ''));
+            }
+        } catch (\Throwable) {
+        }
+
+        return $modes;
+    }
+
+    public static function displayMode(string $mode): string
+    {
+        return \in_array($mode, self::DISPLAY_MODES, true) ? $mode : 'line';
+    }
+
+    /**
+     * Namen der Set-Partner, Kinderartikel unter dem Namen ihres Vaterartikels.
+     *
+     * @param int[] $ids
+     * @return array<int, string> Partner-ID => Anzeigename
+     */
+    private function partnerNames(array $ids): array
+    {
+        $ids = \array_values(\array_unique(\array_filter(\array_map('intval', $ids))));
+        if ($ids === []) {
+            return [];
+        }
+        $parents = [];
+        try {
+            foreach ($this->db->getObjects(
+                'SELECT kArtikel, kVaterArtikel FROM tartikel WHERE kArtikel IN (' . \implode(',', $ids) . ')'
+            ) as $row) {
+                $parents[(int)$row->kArtikel] = (int)$row->kVaterArtikel > 0 ? (int)$row->kVaterArtikel : (int)$row->kArtikel;
+            }
+        } catch (\Throwable $e) {
+            $this->logError($e);
+        }
+        $names  = $this->productNames(\array_values(\array_unique(\array_merge($ids, \array_values($parents)))));
+        $result = [];
+        foreach ($ids as $id) {
+            $result[$id] = $names[$parents[$id] ?? $id] ?? ($names[$id] ?? '');
+        }
+
+        return $result;
     }
 
     /**
@@ -488,9 +562,13 @@ final class DealPricing
         $isEn = CountdownService::currentLanguage() === 'eng';
 
         return [
-            'price' => $isEn ? 'Newsletter price' : 'Newsletter-Preis',
-            'set'   => $isEn ? 'In a set with %s' : 'Im Set mit %s',
-            'each'  => $isEn ? 'each' : 'je Stück',
+            'price'    => $isEn ? 'Newsletter price' : 'Newsletter-Preis',
+            'set'      => $isEn ? 'In a set with %s' : 'Im Set mit %s',
+            'inSet'    => $isEn ? 'in a set' : 'im Set',
+            'each'     => $isEn ? 'each' : 'je Stück',
+            'oldPrice' => $isEn ? 'Old price' : 'Alter Preis',
+            'badge'    => $isEn ? 'Newsletter' : 'Newsletter',
+            'setBadge' => $isEn ? 'Newsletter set' : 'Newsletter-Set',
         ];
     }
 

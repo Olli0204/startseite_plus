@@ -8,7 +8,6 @@ use JTL\Cart\CartHelper;
 use JTL\Catalog\Product\Artikel;
 use JTL\DB\DbInterface;
 use JTL\Helpers\Form;
-use JTL\Helpers\Product;
 use JTL\Shop;
 use Plugin\startseite_plus\Countdown\CountdownService;
 use Plugin\startseite_plus\Deal\DealService;
@@ -150,10 +149,7 @@ final class DealSets
         $added              = 0;
         foreach ([$partnerID, $targetID] as $id) {
             try {
-                $properties = (int)($this->row($id)->kEigenschaftKombi ?? 0) > 0
-                    ? Product::getSelectedPropertiesForVarCombiArticle($id)
-                    : [];
-                if (CartHelper::addProductIDToCart($id, 1, $properties, 1)) {
+                if (CartHelper::addProductIDToCart($id, 1, DealService::cartProperties($id), 1)) {
                     ++$added;
                 }
             } catch (\Throwable $e) {
@@ -176,14 +172,16 @@ final class DealSets
     private function buildSet(array $rule): ?array
     {
         $singles  = $this->singlePrices();
-        $partners = \array_values(\array_filter(\array_map(
-            fn(int $id): ?array => $this->option($id, $singles[$id] ?? null),
-            $rule['partners']
-        )));
-        $targets  = \array_values(\array_filter(\array_map(
-            fn(int $id): ?array => $this->option($id, (float)$rule['price']),
-            $rule['products']
-        )));
+        $partners = [];
+        foreach ($this->groupOptions($rule['partners']) as $id => $allowed) {
+            $partners[] = $this->option($id, $singles[$id] ?? null, $allowed);
+        }
+        $targets = [];
+        foreach ($this->groupOptions($rule['products']) as $id => $allowed) {
+            $targets[] = $this->option($id, (float)$rule['price'], $allowed);
+        }
+        $partners = \array_values(\array_filter($partners));
+        $targets  = \array_values(\array_filter($targets));
         if ($partners === [] || $targets === []) {
             return null;
         }
@@ -216,7 +214,41 @@ final class DealSets
      *
      * @return array<string, mixed>|null
      */
-    private function option(int $id, ?float $dealPrice): ?array
+    /**
+     * Artikel einer Regel zu Karten-Optionen zusammenfassen: Varianten erscheinen unter ihrem Vaterartikel. Steht der
+     * Vater selbst in der Regel, sind alle Varianten wählbar, sonst nur die eingetragenen.
+     *
+     * @param int[] $ids
+     * @return array<int, int[]|null> Options-ID (Vater oder Einzelartikel) => erlaubte Varianten (null = alle)
+     */
+    private function groupOptions(array $ids): array
+    {
+        $groups = [];
+        foreach ($ids as $id) {
+            $parent = $this->parentOf($id);
+            if ($parent <= 0) {
+                $groups[$id] = null;
+                continue;
+            }
+            if (\array_key_exists($parent, $groups) && $groups[$parent] === null) {
+                continue;
+            }
+            $groups[$parent]   ??= [];
+            $groups[$parent][] = $id;
+        }
+        foreach ($ids as $id) {
+            if ($this->parentOf($id) <= 0) {
+                $groups[$id] = null;   // Vater in der Regel: alle Varianten
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param int[]|null $allowed erlaubte Varianten (null = alle)
+     */
+    private function option(int $id, ?float $dealPrice, ?array $allowed = null): ?array
     {
         try {
             if ($this->productLoader !== null) {
@@ -248,7 +280,10 @@ final class DealSets
             'shopValue' => $shop,
             'shop'      => $shop > 0 ? DealPricing::formatGross($shop) : '',
             'reduced'   => $value < $shop - 0.005,
-            'variants'  => $isParent ? $this->variants($id) : [],
+            'variants'  => $isParent ? \array_values(\array_filter(
+                $this->variants($id),
+                static fn(array $variant): bool => $allowed === null || \in_array($variant['id'], $allowed, true)
+            )) : [],
             'single'    => !$isParent,
         ];
     }
