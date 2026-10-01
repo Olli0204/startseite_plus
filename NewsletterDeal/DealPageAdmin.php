@@ -54,6 +54,7 @@ final class DealPageAdmin
             ->assign('nldBaseUrl', $this->tabUrl())
             ->assign('nldShopUrl', \rtrim(Shop::getURL(), '/') . '/')
             ->assign('nldPrefix', DealPageService::SLUG_PREFIX)
+            ->assign('nldRuleTpl', $this->plugin->getPaths()->getAdminPath() . 'templates/newsletter_deal_rule.tpl')
             ->assign('nldPickerCore', \rtrim($this->plugin->getPaths()->getBasePath(), '/') . '/portlet_input_types/picker-core.tpl')
             ->assign('nldNow', \date('d.m.Y H:i'));
 
@@ -74,6 +75,7 @@ final class DealPageAdmin
         if ($action === 'delete') {
             if ($id > 0) {
                 $this->db->delete(DealPageService::TABLE, 'id', $id);
+                $this->db->delete(DealPricing::TABLE_RULES, 'deal_id', $id);
                 $this->flash('Deal-Seite gelöscht.');
             }
             $this->redirect([]);
@@ -94,8 +96,9 @@ final class DealPageAdmin
         if ($error !== '') {
             return [$error, $row];
         }
-        $data = clone $row;
-        unset($data->id);
+        $data  = clone $row;
+        $rules = $data->rules;
+        unset($data->id, $data->rules);
         // NiceDB macht aus null einen Leerstring (ungültig für DATETIME); '_DBNULL_' schreibt echtes NULL
         $data->valid_from  ??= '_DBNULL_';
         $data->valid_until ??= '_DBNULL_';
@@ -104,6 +107,7 @@ final class DealPageAdmin
         } else {
             $id = $this->db->insert(DealPageService::TABLE, $data);
         }
+        $this->saveRules($id, $rules);
         $this->flash('Deal-Seite gespeichert.');
         $this->redirect($action === 'save_continue' ? ['nld' => 'edit', 'nld_id' => $id] : []);
     }
@@ -125,9 +129,11 @@ final class DealPageAdmin
         $row->slug_en = DealPageService::normalizeSlug((string)($_POST['nld_slug_en'] ?? ''));
         $row->coupon  = \mb_substr(\trim((string)($_POST['nld_coupon'] ?? '')), 0, 255);
         $row->products = \implode(';', DealPageService::parseIds((string)($_POST['nld_products'] ?? '')));
+        $row->code     = DealPricing::normalizeCode((string)($_POST['nld_code'] ?? ''));
         $row->active   = isset($_POST['nld_active']) ? 1 : 0;
 
-        $errors = [];
+        $errors     = [];
+        $row->rules = $this->rulesFromPost($errors);
         foreach (['valid_from' => 'Start', 'valid_until' => 'Ende'] as $field => $label) {
             $raw = \str_replace('T', ' ', \trim((string)($_POST['nld_' . $field] ?? '')));
             $ts  = $raw !== '' ? \strtotime($raw) : null;
@@ -163,8 +169,11 @@ final class DealPageAdmin
         if ($from !== null && $until !== null && $until <= $from) {
             $errors[] = 'Das Ende muss nach dem Start liegen.';
         }
-        if ($row->products === '' && $row->coupon === '') {
-            $errors[] = 'Bitte Artikel auswählen oder einen Kupon mit Artikelbeschränkung wählen.';
+        if ($row->products === '' && $row->coupon === '' && $row->rules === []) {
+            $errors[] = 'Bitte Deal-Preise anlegen, Artikel auswählen oder einen Kupon mit Artikelbeschränkung wählen.';
+        }
+        if (($codeProblem = $this->codeProblem($row->code, $id)) !== '') {
+            $errors[] = $codeProblem;
         }
 
         return [$row, \implode(' ', $errors)];
@@ -184,7 +193,9 @@ final class DealPageAdmin
             'text'        => '',
             'text_en'     => '',
             'coupon'      => '',
+            'code'        => '',
             'products'    => '',
+            'rules'       => [],
             'valid_from'  => null,
             'valid_until' => null,
             'active'      => 1,
@@ -212,7 +223,14 @@ final class DealPageAdmin
             'text'        => (string)($row->text ?? ''),
             'text_en'     => (string)($row->text_en ?? ''),
             'coupon'      => (string)$row->coupon,
+            'code'        => (string)($row->code ?? ''),
             'products'    => (string)($row->products ?? ''),
+            'rules'       => \array_map(static fn(array $rule): array => [
+                'type'     => $rule['type'],
+                'products' => \implode(';', $rule['products']),
+                'partners' => \implode(';', $rule['partners']),
+                'price'    => $rule['price'] > 0 ? \number_format((float)$rule['price'], 2, '.', '') : '',
+            ], \is_array($row->rules ?? null) ? $row->rules : $this->loadRules((int)$row->id)),
             'valid_from'  => $input($row->valid_from ?? null),
             'valid_until' => $input($row->valid_until ?? null),
             'active'      => (int)$row->active === 1,
@@ -241,10 +259,19 @@ final class DealPageAdmin
             return $ts === null ? '' : \date('d.m.Y H:i', $ts);
         };
 
+        $ruleCounts = [];
+        try {
+            foreach ($this->db->getObjects(
+                'SELECT deal_id, COUNT(*) AS cnt FROM ' . DealPricing::TABLE_RULES . ' GROUP BY deal_id'
+            ) as $count) {
+                $ruleCounts[(int)$count->deal_id] = (int)$count->cnt;
+            }
+        } catch (\Throwable) {
+        }
         $langDe = $this->langID('ger');
         $langEn = $this->langID('eng');
 
-        return \array_map(static function (stdClass $row) use ($labels, $format, $langDe, $langEn): array {
+        return \array_map(static function (stdClass $row) use ($labels, $format, $langDe, $langEn, $ruleCounts): array {
             $status = DealPageService::status($row);
             $from   = $format($row->valid_from ?? null);
             $until  = $format($row->valid_until ?? null);
@@ -259,6 +286,8 @@ final class DealPageAdmin
                 'previewUrlEn' => DealPageService::previewUrl((string)$row->slug_en, $langEn),
                 'coupon'      => (string)$row->coupon,
                 'count'       => \count(DealPageService::parseIds($row->products ?? '')),
+                'rules'       => $ruleCounts[(int)$row->id] ?? 0,
+                'code'        => (string)($row->code ?? ''),
                 'period'      => match (true) {
                     $from !== '' && $until !== '' => $from . ' – ' . $until,
                     $from !== ''                  => 'ab ' . $from,
@@ -270,6 +299,118 @@ final class DealPageAdmin
                 'statusClass' => $labels[$status][1],
             ];
         }, $this->service()->all());
+    }
+
+    /**
+     * Deal-Preise aus dem Formular (nld_rules[i][type|products|partners|price]). Komplett leere Zeilen entfallen,
+     * unvollständige erzeugen eine Fehlermeldung (die Zeile bleibt im Formular stehen).
+     *
+     * @param string[] $errors
+     * @return array<int, array<string, mixed>>
+     */
+    private function rulesFromPost(array &$errors): array
+    {
+        $rules = [];
+        $posted = \is_array($_POST['nld_rules'] ?? null) ? $_POST['nld_rules'] : [];
+        foreach (\array_values($posted) as $i => $input) {
+            if (!\is_array($input)) {
+                continue;
+            }
+            $priceRaw = \str_replace(',', '.', \trim((string)($input['price'] ?? '')));
+            $rule     = DealPricing::ruleFromRow((object)[
+                'type'     => (string)($input['type'] ?? 'price'),
+                'products' => (string)($input['products'] ?? ''),
+                'partners' => (string)($input['partners'] ?? ''),
+                'price'    => \is_numeric($priceRaw) ? (float)$priceRaw : 0,
+            ]);
+            if ($rule['type'] !== 'set') {
+                $rule['partners'] = [];
+            }
+            if ($rule['products'] === [] && $rule['partners'] === [] && $priceRaw === '') {
+                continue;
+            }
+            if (!DealPricing::isUsable($rule)) {
+                $errors[] = \sprintf(
+                    'Deal-Preis %d: bitte Artikel%s und einen Preis über 0 angeben.',
+                    $i + 1,
+                    $rule['type'] === 'set' ? ', Set-Partner' : ''
+                );
+            }
+            $rules[] = $rule;
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Alle gespeicherten Regeln einer Seite (auch unvollständige) für das Formular.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadRules(int $dealID): array
+    {
+        if ($dealID <= 0) {
+            return [];
+        }
+        try {
+            return \array_map(
+                static fn(stdClass $row): array => DealPricing::ruleFromRow($row),
+                $this->db->getObjects(
+                    'SELECT * FROM ' . DealPricing::TABLE_RULES . ' WHERE deal_id = :id ORDER BY sort, id',
+                    ['id' => $dealID]
+                )
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rules
+     */
+    private function saveRules(int $dealID, array $rules): void
+    {
+        if ($dealID <= 0) {
+            return;
+        }
+        $this->db->delete(DealPricing::TABLE_RULES, 'deal_id', $dealID);
+        foreach (\array_values($rules) as $sort => $rule) {
+            $this->db->insert(DealPricing::TABLE_RULES, (object)[
+                'deal_id'  => $dealID,
+                'type'     => $rule['type'],
+                'products' => \implode(';', $rule['products']),
+                'partners' => \implode(';', $rule['partners']),
+                'price'    => \number_format((float)$rule['price'], 2, '.', ''),
+                'sort'     => $sort,
+            ]);
+        }
+    }
+
+    /**
+     * Deal-Code: optional, eindeutig unter den Deal-Seiten und kein bestehender JTL-Kupon-Code.
+     */
+    private function codeProblem(string $code, int $id): string
+    {
+        if ($code === '') {
+            return '';
+        }
+        if (\mb_strlen($code) < 4) {
+            return 'Der Deal-Code braucht mindestens 4 Zeichen.';
+        }
+        try {
+            if ($this->db->getSingleObject(
+                'SELECT id FROM ' . DealPageService::TABLE . ' WHERE UPPER(code) = :code AND id != :id',
+                ['code' => $code, 'id' => $id]
+            ) !== null) {
+                return 'Der Deal-Code wird bereits von einer anderen Deal-Seite verwendet.';
+            }
+            if ($this->db->getSingleObject('SELECT kKupon FROM tkupon WHERE UPPER(cCode) = :code LIMIT 1', ['code' => $code]) !== null) {
+                return 'Der Deal-Code ist bereits ein JTL-Kupon-Code – bitte einen anderen wählen.';
+            }
+        } catch (\Throwable) {
+        }
+
+        return '';
     }
 
     /**

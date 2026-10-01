@@ -15,6 +15,7 @@ use Plugin\startseite_plus\Deal\DealService;
 use Plugin\startseite_plus\NewsletterDeal\DealPageAdmin;
 use Plugin\startseite_plus\NewsletterDeal\DealPageRoute;
 use Plugin\startseite_plus\NewsletterDeal\DealPageService;
+use Plugin\startseite_plus\NewsletterDeal\DealPricing;
 
 use function Functional\first;
 
@@ -35,6 +36,8 @@ class Bootstrap extends Bootstrapper
         });
 
         $dispatcher->hookInto(\HOOK_IO_HANDLE_REQUEST, function (array $args): void {
+            // Deal-Preis-Hinweise auch in per IO nachgeladenem Markup (z. B. Variantenwechsel auf der Artikelseite)
+            $this->assignDealPrices();
             $io = $args['io'] ?? null;
             if (\is_object($io) && !$io->exists(DealService::IO_FUNCTION)) {
                 $io->register(
@@ -47,10 +50,26 @@ class Bootstrap extends Bootstrapper
 
         // Newsletter-Deals: geheime Links als eigene Routen vor dem Core-Catch-all registrieren
         $dispatcher->hookInto(\HOOK_ROUTER_PRE_DISPATCH, static function (array $args): void {
+            // Deal-Code im Kupon-Feld abfangen, bevor der Core ihn als unbekannten Kupon ablehnt
+            DealPricing::create()->handleCouponField();
             $router = $args['router'] ?? null;
             if ($router instanceof Router) {
                 DealPageRoute::register($router);
             }
+        });
+        // Deal-Preise: Positionspreis im Warenkorb (bei jeder Neuberechnung) und Hinweis an der Position
+        $dispatcher->hookInto(\HOOK_SETZTE_POSITIONSPREISE, static function (array $args): void {
+            if (isset($args['position']) && \is_object($args['position'])) {
+                DealPricing::create()->applyToCartItem($args['position']);
+            }
+        });
+        $dispatcher->hookInto(\HOOK_SET_POSITION_PRICES_END, static function (array $args): void {
+            if (isset($args['position']) && \is_object($args['position'])) {
+                DealPricing::create()->noteCartItem($args['position']);
+            }
+        });
+        $dispatcher->hookInto(\HOOK_LETZTERINCLUDE_INC, function (): void {
+            $this->assignDealPrices();
         });
         $dispatcher->hookInto(\HOOK_PRODUCTFILTER_INIT_STATES, static function (array $args): void {
             DealPageRoute::onInitStates($args);
@@ -133,6 +152,21 @@ class Bootstrap extends Bootstrapper
         if ($view['expired']) {
             Shop::Container()->getAlertService()->removeAlertByKey('noFilterResults');
         }
+    }
+
+    /**
+     * Deal-Preis-Hinweise für productdetails/price.tpl (Liste, Artikelseite), nur mit freigeschaltetem Deal.
+     */
+    public function assignDealPrices(): void
+    {
+        $map = DealPricing::create()->displayMap();
+        if ($map === []) {
+            return;
+        }
+        $base = \rtrim($this->getPlugin()->getPaths()->getFrontendURL(), '/');
+        Shop::Smarty()->assign('spNlDealPrices', $map)
+            ->assign('spNlDealLabels', DealPricing::labels())
+            ->assign('spNlDealCss', $base . '/css/newsletter-deal.css?v=' . $this->getPlugin()->getMeta()->getVersion());
     }
 
     public function getCommonUrl(): string

@@ -168,6 +168,13 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   EN, Artikelnamen, Preise und Hinweise auf Englisch; der Sprachumschalter wechselt zwischen beiden Links.
 - Kopf der Liste: Überschrift, Text (DE/EN) und – mit Kupon – eine Code-Karte mit Rabatt, Kopieren-Button, Gültigkeit und
   Countdown. Der Rabatt kommt aus dem JTL-Kupon; damit er nur für die Deal-Artikel gilt, im Kupon die Artikel hinterlegen.
+- **Deal-Preise (seit 2.13.0):** je Seite beliebig viele Regeln – *Festpreis* (gewählte Artikel kosten je Stück X €,
+  Vaterartikel gelten für alle Varianten) und *Set-Preis* (Artikel kostet X €, wenn ein Set-Partner im Warenkorb liegt,
+  höchstens so oft wie Partner im Warenkorb). Beispiel Newsletter: Boards 250 €, Transfer 150 €, Upshot 120 €, Upshot im
+  Set mit dem Odyssey 100 €. Freigeschaltet pro Sitzung durch den Besuch des Links oder den **Deal-Code** im Kupon-Feld
+  des Warenkorbs. Der Warenkorb übernimmt den Deal-Preis direkt als Positionspreis (Hinweis „Newsletter-Deal (statt …)“),
+  nur wenn er günstiger als der Shop-Preis ist; Liste und Artikelseite zeigen „Newsletter-Preis …“ / „Im Set mit …“.
+  Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
   `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
 
@@ -199,6 +206,12 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.13.0
+- Newsletter-Deals: Deal-Preise je Seite (Festpreis je Artikel, Set-Preis mit Partnerartikel, Tabelle
+  `startseite_plus_nl_deal_rule`), Freischaltung per Link oder eigenem Deal-Code im Kupon-Feld, Positionspreis und
+  Hinweis im Warenkorb (`HOOK_SETZTE_POSITIONSPREISE`), Preis-Hinweis in Liste und Artikelseite
+  (`productdetails/price.tpl`), Kopfkarte „Deine Newsletter-Preise sind aktiv“ mit Code
 
 ### 2.12.0
 - Newsletter-Deals auf Englisch: eigener englischer Link je Seite (Spalte `slug_en`, Migration setzt `<slug>-en`),

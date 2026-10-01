@@ -3,10 +3,21 @@
     .sp-nld .sp-nld-url { display: flex; align-items: center; gap: .35rem; min-width: 0; }
     .sp-nld .sp-nld-url code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--body-color, #212529); }
     .sp-nld .sp-nld-prefix { white-space: nowrap; color: var(--secondary, #6c757d); }
-    .sp-nld .sp-nld-muted { color: var(--secondary, #6c757d); font-size: .85em; }
+    .sp-nld .sp-nld-muted { color: var(--body-color, #212529); opacity: .65; font-size: .85em; }
     .sp-nld .sp-pp-item { background: var(--card-bg, #fff); border-color: var(--border-color, #dfe3e8); color: var(--body-color, #212529); }
     .sp-nld .sp-pp-thumb { background: var(--body-bg, #f5f7fa); }
     .sp-nld .sp-pp-results { max-height: 22rem; overflow-y: auto; }
+    .sp-nld .sp-nld-rule { margin: 0 0 .75rem; padding: .75rem; border: 1px solid var(--border-color, #dfe3e8); border-radius: 6px; background: var(--card-bg, #fff); }
+    .sp-nld .sp-nld-rule-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+    .sp-nld .sp-nld-rule-type { flex: 1 1 14rem; max-width: 20rem; }
+    .sp-nld .sp-nld-rule-price { flex: 0 1 13rem; }
+    .sp-nld .sp-nld-rule-remove { margin-left: auto; }
+    .sp-nld .sp-nld-rule-text { margin: 0 0 .35rem; font-size: .85em; color: var(--body-color, #212529); opacity: .7; }
+    .sp-nld .sp-nld-rule-partners { margin-top: .6rem; }
+    .sp-nld .sp-nld-rule[data-type="price"] .sp-nld-rule-partners,
+    .sp-nld .sp-nld-rule[data-type="price"] [data-for="set"],
+    .sp-nld .sp-nld-rule[data-type="set"] [data-for="price"] { display: none; }
+    .sp-nld .sp-nld-rule-add { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .35rem; }
 </style>
 <div class="sp-nld">
     {if $nldFlash !== ''}
@@ -39,7 +50,8 @@
                             <th class="text-left">Name</th>
                             <th class="text-left">Geheimer Link</th>
                             <th class="text-left">Zeitraum</th>
-                            <th class="text-left">Kupon</th>
+                            <th class="text-left">Code / Kupon</th>
+                            <th class="text-center">Deal-Preise</th>
                             <th class="text-center">Artikel</th>
                             <th class="text-center">Status</th>
                             <th class="text-center">Aktionen</th>
@@ -67,8 +79,13 @@
                                     {/foreach}
                                 </td>
                                 <td>{$page.period|escape:'html'}</td>
-                                <td>{if $page.coupon !== ''}<code>{$page.coupon|escape:'html'}</code>{else}<span class="sp-nld-muted">–</span>{/if}</td>
-                                <td class="text-center">{if $page.count > 0}{$page.count}{else}<span class="sp-nld-muted" title="Artikel aus dem Kupon">Kupon</span>{/if}</td>
+                                <td>
+                                    {if $page.code !== ''}<span class="sp-nld-muted">Code</span> <code>{$page.code|escape:'html'}</code><br>{/if}
+                                    {if $page.coupon !== ''}<span class="sp-nld-muted">Kupon</span> <code>{$page.coupon|escape:'html'}</code>{/if}
+                                    {if $page.code === '' && $page.coupon === ''}<span class="sp-nld-muted">–</span>{/if}
+                                </td>
+                                <td class="text-center">{if $page.rules > 0}{$page.rules}{else}<span class="sp-nld-muted">–</span>{/if}</td>
+                                <td class="text-center">{if $page.count > 0}{$page.count}{elseif $page.rules > 0}<span class="sp-nld-muted" title="Artikel der Deal-Preise">aus Preisen</span>{else}<span class="sp-nld-muted" title="Artikel aus dem Kupon">Kupon</span>{/if}</td>
                                 <td class="text-center"><span class="badge badge-{$page.statusClass}">{$page.statusLabel|escape:'html'}</span></td>
                                 <td class="text-center">
                                     <div class="btn-group">
@@ -237,7 +254,40 @@
 
                 <hr>
                 <div class="form-group form-row">
-                    <label class="col col-sm-4 col-form-label text-sm-right">Kupon:</label>
+                    <label class="col col-sm-4 col-form-label text-sm-right">Deal-Preise:</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <div id="sp-nld-rules">
+                            {foreach $nldForm.rules as $rule}
+                                {include file=$nldRuleTpl rule=$rule idx=$rule@index}
+                            {/foreach}
+                        </div>
+                        <template id="sp-nld-rule-template">
+                            {include file=$nldRuleTpl rule=['type' => 'price', 'products' => '', 'partners' => '', 'price' => ''] idx='__i__'}
+                        </template>
+                        <div class="sp-nld-rule-add">
+                            <button type="button" class="btn btn-outline-primary" data-sp-nld-add="price"><i class="fal fa-plus"></i> Festpreis</button>
+                            <button type="button" class="btn btn-outline-primary" data-sp-nld-add="set"><i class="fal fa-plus"></i> Set-Preis</button>
+                        </div>
+                        <small class="text-muted">Bruttopreise je Stück. Sie gelten im Warenkorb für Kunden, die den Link besucht oder
+                            den Deal-Code eingegeben haben, und nur, solange sie günstiger als der Shop-Preis sind. Beispiel:
+                            Festpreis 250 € für die Boards, Festpreis 120 € für die Upshot und Set-Preis 100 € für die Upshot mit
+                            dem Odyssey als Set-Partner. Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="nld_code">Deal-Code (optional):</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <input type="text" class="form-control" id="nld_code" name="nld_code" maxlength="50"
+                               value="{$nldForm.code|escape:'html'}" placeholder="z. B. SNOW4DAYS" style="text-transform: uppercase">
+                        <small class="text-muted">Für den Newsletter: schaltet die Deal-Preise im Kupon-Feld des Warenkorbs frei,
+                            z. B. auf einem anderen Gerät. Der Besuch des Links schaltet sie automatisch frei. Kein bestehender
+                            JTL-Kupon-Code, Groß-/Kleinschreibung egal.</small>
+                    </div>
+                </div>
+
+                <hr>
+                <div class="form-group form-row">
+                    <label class="col col-sm-4 col-form-label text-sm-right">Zusätzlicher Kupon (optional):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <div class="sp-picker" data-sp-picker="coupon">
                             <input type="hidden" class="sp-picker-value" name="nld_coupon" value="{$nldForm.coupon|escape:'html'}">
@@ -248,10 +298,10 @@
                     </div>
                 </div>
                 <div class="form-group form-row">
-                    <label class="col col-sm-4 col-form-label text-sm-right">Artikel:</label>
+                    <label class="col col-sm-4 col-form-label text-sm-right">Artikel der Seite (optional):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <div class="sp-picker" data-sp-picker="products" data-max="200" data-parents-ok
-                             data-empty="Keine Artikel gewählt – dann zeigt die Seite die Artikel, die im Kupon hinterlegt sind.">
+                             data-empty="Keine Artikel gewählt – dann zeigt die Seite die Artikel der Deal-Preise bzw. des Kupons.">
                             <input type="hidden" class="sp-picker-value" name="nld_products" value="{$nldForm.products|escape:'html'}">
                             <div class="sp-picker-ui"></div>
                         </div>
@@ -300,6 +350,35 @@
                 document.getElementById('nld_slug_en').value = '{$nldPrefix|escape:'javascript'}-' + hex + '-en';
             });
         }
+        var rules = document.getElementById('sp-nld-rules');
+        var ruleTpl = document.getElementById('sp-nld-rule-template');
+        var ruleNo = 0;
+        root.addEventListener('click', function (event) {
+            var add = event.target.closest('[data-sp-nld-add]');
+            if (add && rules && ruleTpl) {
+                var wrap = document.createElement('div');
+                wrap.innerHTML = ruleTpl.innerHTML.replace(/__i__/g, 'n' + Date.now() + '' + (ruleNo++));
+                var row = wrap.firstElementChild;
+                var type = add.getAttribute('data-sp-nld-add');
+                row.setAttribute('data-type', type);
+                row.querySelector('.sp-nld-rule-type').value = type;
+                rules.appendChild(row);
+                if (window.spPicker) {
+                    window.spPicker.initAll(row, true);
+                }
+                return;
+            }
+            var remove = event.target.closest('.sp-nld-rule-remove');
+            if (remove) {
+                remove.closest('.sp-nld-rule').remove();
+                return;
+            }
+        });
+        root.addEventListener('change', function (event) {
+            if (event.target.classList.contains('sp-nld-rule-type')) {
+                event.target.closest('.sp-nld-rule').setAttribute('data-type', event.target.value);
+            }
+        });
         root.addEventListener('click', function (event) {
             var button = event.target.closest('[data-sp-nld-copy]');
             if (!button) {

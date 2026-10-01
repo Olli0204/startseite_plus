@@ -219,6 +219,13 @@ final class DealPageService
     {
         $ids = self::parseIds($row->products ?? '');
         if ($ids === []) {
+            // ohne eigene Auswahl: alle Artikel der Deal-Preise (inkl. Set-Partner), sonst die Artikel des Kupons
+            foreach ((new DealPricing($this->db))->rulesFor([(int)$row->id]) as $rule) {
+                $ids = \array_merge($ids, $rule['products'], $rule['partners']);
+            }
+            $ids = \array_slice(\array_values(\array_unique($ids)), 0, self::MAX_PRODUCTS);
+        }
+        if ($ids === []) {
             $coupon = DealService::create()->findCoupon((string)$row->coupon);
             if ($coupon !== null) {
                 $numbers = \preg_split('/[,;\r\n]+/', (string)$coupon->cArtikel) ?: [];
@@ -263,9 +270,11 @@ final class DealPageService
         $deal = null;
         if (\trim((string)$row->coupon) !== '') {
             // Rabatt, Code, Gültigkeit und Prüfungen wie beim Deal-Banner; die Artikel zeigt die Liste selbst
-            $deal =DealService::create()->view((string)$row->coupon, '', '', ['showButton' => false]);
+            $deal = DealService::create()->view((string)$row->coupon, '', '', ['showButton' => false]);
         }
         $couponOk = $deal !== null && !empty($deal['show']);
+        $rules    = \count((new DealPricing($this->db))->rulesFor([(int)$row->id]));
+        $code     = DealPricing::normalizeCode((string)($row->code ?? ''));
 
         // Ende für Countdown und "gültig bis": Seite, sonst Kupon
         $until = self::timestamp($row->valid_until ?? null) ?? ($couponOk ? ($deal['validUntil'] ?? null) : null);
@@ -282,8 +291,11 @@ final class DealPageService
                     $notes[] = 'Kupon wird nicht angezeigt: ' . $problem;
                 }
             }
-            if (\trim((string)$row->coupon) === '') {
-                $notes[] = 'Hinweis: Kein Kupon gewählt – die Seite zeigt nur die Artikel.';
+            if (\trim((string)$row->coupon) === '' && $rules === 0) {
+                $notes[] = 'Hinweis: Weder Deal-Preise noch Kupon – die Seite zeigt nur die Artikel.';
+            }
+            if ($rules > 0 && $status !== 'active') {
+                $notes[] = 'Vorschau: Die Deal-Preise gelten erst, wenn die Seite aktiv ist und läuft.';
             }
         }
 
@@ -306,6 +318,15 @@ final class DealPageService
             'validLabel'  => $until !== null
                 ? ($isEn ? 'valid until ' . \date('m/d/Y H:i', $until) : 'gültig bis ' . \date('d.m.Y, H:i', $until) . ' Uhr')
                 : '',
+            'prices'      => $rules > 0,
+            'pricesTitle' => $isEn ? 'Your newsletter prices are active' : 'Deine Newsletter-Preise sind aktiv',
+            'pricesHint'  => $isEn ? 'The deal prices apply automatically in your cart.'
+                : 'Die Deal-Preise gelten automatisch im Warenkorb.',
+            'code'        => $code,
+            'codeHint'    => $isEn ? 'On another device? Enter the code in your cart:'
+                : 'Auf einem anderen Gerät? Code im Warenkorb eingeben:',
+            'copyLabel'   => $isEn ? 'Copy' : 'Kopieren',
+            'copiedLabel' => $isEn ? 'Copied' : 'Kopiert',
             'countdown'   => $until !== null && $status !== 'expired'
                 ? CountdownService::buildView(
                     0,
