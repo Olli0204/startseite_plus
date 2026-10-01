@@ -16,6 +16,7 @@ use Plugin\startseite_plus\NewsletterDeal\DealPageAdmin;
 use Plugin\startseite_plus\NewsletterDeal\DealPageRoute;
 use Plugin\startseite_plus\NewsletterDeal\DealPageService;
 use Plugin\startseite_plus\NewsletterDeal\DealPricing;
+use Plugin\startseite_plus\NewsletterDeal\DealSets;
 
 use function Functional\first;
 
@@ -39,6 +40,15 @@ class Bootstrap extends Bootstrapper
             // Deal-Preis-Platzhalter auch in per IO nachgeladenem Markup (z. B. Variantenwechsel auf der Artikelseite)
             $this->assignDealPrices();
             $io = $args['io'] ?? null;
+            if (\is_object($io) && !$io->exists(DealSets::IO_SETS)) {
+                // Set-Konfigurator: Karten und "Set in den Warenkorb" (nur freigeschaltete Sitzungen)
+                $io->register(DealSets::IO_SETS, static fn(mixed $context = []): array => DealSets::create()->ioSets($context));
+                $io->register(
+                    DealSets::IO_ADD,
+                    static fn(mixed $rule = 0, mixed $partner = 0, mixed $target = 0, mixed $token = ''): array
+                        => DealSets::create()->ioAdd($rule, $partner, $target, $token)
+                );
+            }
             if (\is_object($io) && !$io->exists(DealPricing::IO_FUNCTION)) {
                 // liefert die Preise nur für Sitzungen mit freigeschaltetem Deal (Seiten selbst bleiben cachebar)
                 $io->register(
@@ -155,6 +165,7 @@ class Bootstrap extends Bootstrapper
             return;
         }
         $view = DealPageService::create()->frontendView($page, DealPageRoute::isAdmin());
+        [$view['assetsCss'], $view['assetsJs']] = $this->dealAssetUrls();
         Shop::Smarty()->assign('spNlDeal', $view)
             ->assign('robotsContent', 'noindex, nofollow')
             ->assign('spCommonUrl', $this->getCommonUrl())
@@ -173,15 +184,27 @@ class Bootstrap extends Bootstrapper
      */
     public function assignDealPrices(): void
     {
-        $ids = DealPricing::create()->runningProductIDs();
-        if ($ids === []) {
+        $ids    = DealPricing::create()->runningProductIDs();
+        $setIDs = DealSets::create()->runningProductIDs();
+        if ($ids === [] && $setIDs === []) {
             return;
         }
+        [$css, $js] = $this->dealAssetUrls();
+        Shop::Smarty()->assign('spNlDealIDs', $ids)
+            ->assign('spNlSetIDs', $setIDs)
+            ->assign('spNlDealCss', $css)
+            ->assign('spNlDealJs', $js);
+    }
+
+    /**
+     * @return array{0: string, 1: string} CSS- und JS-URL der Newsletter-Deal-Anzeige (mit Plugin-Version)
+     */
+    private function dealAssetUrls(): array
+    {
         $base    = \rtrim($this->getPlugin()->getPaths()->getFrontendURL(), '/');
         $version = $this->getPlugin()->getMeta()->getVersion();
-        Shop::Smarty()->assign('spNlDealIDs', $ids)
-            ->assign('spNlDealCss', $base . '/css/newsletter-deal.css?v=' . $version)
-            ->assign('spNlDealJs', $base . '/js/newsletter-deal.js?v=' . $version);
+
+        return [$base . '/css/newsletter-deal.css?v=' . $version, $base . '/js/newsletter-deal.js?v=' . $version];
     }
 
     public function getCommonUrl(): string

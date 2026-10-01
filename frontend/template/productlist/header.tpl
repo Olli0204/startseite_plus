@@ -48,6 +48,13 @@
                     {/if}
                 </section>
             {/if}
+            {if $spNlDeal.hasSets}
+                {* Set-Konfigurator: Karten lädt newsletter-deal.js per IO (Deal-Seite schaltet die Sitzung frei) *}
+                <link rel="stylesheet" href="{$spNlDeal.assetsCss|escape:'html'}">
+                <script src="{$spNlDeal.assetsJs|escape:'html'}" defer></script>
+                {assign var=spNlDealAssetsDone value=true scope='global'}
+                <div class="sp-nld-sets sp-nld-sets--deal" hidden data-sp-nld-sets-deal="{$spNlDeal.id|intval}"></div>
+            {/if}
             {if $spNlDeal.deal !== null}
                 {* zusätzlicher JTL-Kupon (z. B. Rabatt auf alles) *}
                 {$deal = $spNlDeal.deal}
