@@ -30,9 +30,13 @@ final class DealPricing
     public const SESSION_KEY = 'startseitePlusNlDeals';
     public const TABLE_RULES = 'startseite_plus_nl_deal_rule';
     public const TYPES       = ['price', 'set'];
+    public const IO_FUNCTION = 'startseitePlusNlDealPrices';
 
     /** @var array<int, array<string, mixed>>|null Regeln der freigeschalteten, laufenden Deals (pro Request) */
     private static ?array $active = null;
+
+    /** @var array<int, true>|null Artikel mit Deal-Preis in irgendeinem laufenden Deal (pro Request) */
+    private static ?array $running = null;
 
     /** @var array<int, string> Positionshinweise je spl_object_id der Warenkorbposition */
     private static array $notes = [];
@@ -229,6 +233,56 @@ final class DealPricing
         }
 
         return self::$active = $this->rulesFor($running);
+    }
+
+    /**
+     * Artikel-IDs mit Deal-Preis in laufenden Deals – unabhängig von der Sitzung. Nur daraus entstehen die (leeren)
+     * Platzhalter im HTML, damit Seiten für alle Besucher identisch sind und ein Seitencache (z. B. LiteSpeed) keine
+     * freigeschalteten Preise an andere Kunden ausliefert.
+     *
+     * @return array<int, true>
+     */
+    public function runningProductIDs(): array
+    {
+        if (self::$running !== null) {
+            return self::$running;
+        }
+        $running = [];
+        try {
+            foreach ($this->db->getObjects('SELECT * FROM ' . DealPageService::TABLE . ' WHERE active = 1') as $page) {
+                if (DealPageService::status($page) === 'active') {
+                    $running[] = (int)$page->id;
+                }
+            }
+        } catch (\Throwable) {
+            return self::$running = [];
+        }
+        $ids = [];
+        foreach ($this->rulesFor($running) as $rule) {
+            foreach ($rule['products'] as $id) {
+                $ids[$id] = true;
+            }
+        }
+
+        return self::$running = $ids;
+    }
+
+    /**
+     * IO-Funktion für newsletter-deal.js: Deal-Preis-Hinweise der angefragten Artikel – nur für eine Sitzung mit
+     * freigeschaltetem, laufendem Deal, sonst leer.
+     *
+     * @return array{prices: array<int, array<string, mixed>>, labels: array<string, string>}
+     */
+    public function ioPrices(mixed $ids): array
+    {
+        $wanted = \is_array($ids) ? $ids : \preg_split('/[,;\s]+/', \is_scalar($ids) ? (string)$ids : '');
+        $wanted = \array_slice(\array_values(\array_unique(\array_filter(\array_map('intval', $wanted ?: [])))), 0, 200);
+        $map    = $wanted === [] ? [] : $this->displayMap();
+
+        return [
+            'prices' => \array_intersect_key($map, \array_flip($wanted)),
+            'labels' => self::labels(),
+        ];
     }
 
     /**
@@ -485,8 +539,9 @@ final class DealPricing
      */
     public static function reset(): void
     {
-        self::$active = null;
-        self::$notes  = [];
+        self::$active  = null;
+        self::$running = null;
+        self::$notes   = [];
     }
 
     private function logError(\Throwable $e): void

@@ -36,9 +36,16 @@ class Bootstrap extends Bootstrapper
         });
 
         $dispatcher->hookInto(\HOOK_IO_HANDLE_REQUEST, function (array $args): void {
-            // Deal-Preis-Hinweise auch in per IO nachgeladenem Markup (z. B. Variantenwechsel auf der Artikelseite)
+            // Deal-Preis-Platzhalter auch in per IO nachgeladenem Markup (z. B. Variantenwechsel auf der Artikelseite)
             $this->assignDealPrices();
             $io = $args['io'] ?? null;
+            if (\is_object($io) && !$io->exists(DealPricing::IO_FUNCTION)) {
+                // liefert die Preise nur für Sitzungen mit freigeschaltetem Deal (Seiten selbst bleiben cachebar)
+                $io->register(
+                    DealPricing::IO_FUNCTION,
+                    static fn(mixed $ids = []): array => DealPricing::create()->ioPrices($ids)
+                );
+            }
             if (\is_object($io) && !$io->exists(DealService::IO_FUNCTION)) {
                 $io->register(
                     DealService::IO_FUNCTION,
@@ -155,18 +162,22 @@ class Bootstrap extends Bootstrapper
     }
 
     /**
-     * Deal-Preis-Hinweise für productdetails/price.tpl (Liste, Artikelseite), nur mit freigeschaltetem Deal.
+     * Platzhalter für Deal-Preis-Hinweise in productdetails/price.tpl (Liste, Artikelseite). Das HTML hängt nur von den
+     * laufenden Deals ab, nicht von der Sitzung: Der Live-Shop liegt hinter einem LiteSpeed-Seitencache, der eine einmal
+     * gerenderte Seite allen Besuchern ausliefert. Die Preise selbst lädt newsletter-deal.js per IO für freigeschaltete
+     * Sitzungen nach.
      */
     public function assignDealPrices(): void
     {
-        $map = DealPricing::create()->displayMap();
-        if ($map === []) {
+        $ids = DealPricing::create()->runningProductIDs();
+        if ($ids === []) {
             return;
         }
-        $base = \rtrim($this->getPlugin()->getPaths()->getFrontendURL(), '/');
-        Shop::Smarty()->assign('spNlDealPrices', $map)
-            ->assign('spNlDealLabels', DealPricing::labels())
-            ->assign('spNlDealCss', $base . '/css/newsletter-deal.css?v=' . $this->getPlugin()->getMeta()->getVersion());
+        $base    = \rtrim($this->getPlugin()->getPaths()->getFrontendURL(), '/');
+        $version = $this->getPlugin()->getMeta()->getVersion();
+        Shop::Smarty()->assign('spNlDealIDs', $ids)
+            ->assign('spNlDealCss', $base . '/css/newsletter-deal.css?v=' . $version)
+            ->assign('spNlDealJs', $base . '/js/newsletter-deal.js?v=' . $version);
     }
 
     public function getCommonUrl(): string

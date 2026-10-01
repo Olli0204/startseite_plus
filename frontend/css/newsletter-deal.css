@@ -14,6 +14,8 @@
     line-height: 1.3;
     text-align: left;
 }
+/* Platzhalter bleibt unsichtbar, bis newsletter-deal.js einen Preis für die Sitzung geladen hat */
+.sp-nld-price[hidden] { display: none !important; }
 .sp-nld-price__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .4rem; }
 .sp-nld-price__label { opacity: .85; }
 .sp-nld-price__value { font-weight: 700; white-space: nowrap; }

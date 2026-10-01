@@ -145,7 +145,7 @@ final class DealPageRoute
         }
         if ($page === null || !DealPageService::isVisible($page, self::$isAdmin)) {
             // wie eine unbekannte URL: normale 404-Seite
-            return $default->getResponse($request, ['slug' => $slug], $smarty);
+            return self::noCache($default->getResponse($request, ['slug' => $slug], $smarty));
         }
 
         self::$current = $page;
@@ -175,9 +175,21 @@ final class DealPageRoute
 
         $controller = new ProductListController($db, $cache, $state, $config, $alerts);
         if ($controller->init() === false) {
-            return $controller->notFoundResponse($request, $args, $smarty);
+            return self::noCache($controller->notFoundResponse($request, $args, $smarty));
         }
 
-        return $controller->getResponse($request, $args, $smarty);
+        return self::noCache($controller->getResponse($request, $args, $smarty));
+    }
+
+    /**
+     * Deal-Seiten (und ihre 404-Antworten) nie in einen Seitencache legen: Der Seitenaufruf schaltet die Deal-Preise
+     * der Sitzung frei, zeigt Admins eine Vorschau und reagiert sofort auf Aktivieren/Deaktivieren. Der Live-Shop liegt
+     * hinter LiteSpeed (x-litespeed-cache), der ohne diesen Header auch die Deal-Seite allen Besuchern aus dem Cache
+     * ausliefern würde – ohne dass PHP läuft.
+     */
+    private static function noCache(ResponseInterface $response): ResponseInterface
+    {
+        return $response->withHeader('X-LiteSpeed-Cache-Control', 'no-cache')
+            ->withHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     }
 }
