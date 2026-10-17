@@ -209,6 +209,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.16.1         | 5.5.1 – 5.8.2 |
 | 2.2.0          | 5.5.1 – 5.8.0 |
 | 2.1.2          | 5.5.1 – 5.8.0 |
 | 2.1.1          | 5.5.1 – 5.8.0 |
@@ -227,6 +228,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.16.1
+- Kompatibilität mit JTL-Shop 5.8.2 geprüft: die Core-Änderungen 5.8.0 → 5.8.2 (Sicherheitsupdate) betreffen nur Consent-Manager, RMA, Sonderpreis-Berechnung, Banner/ImageMap, PLZ-Autovervollständigung und Backend-Login; NOVA-Templates und Plugin-API sind unverändert. MaxShopVersion auf 5.8.2 angehoben
 
 ### 2.16.0
 - Newsletter-Deals: „Für alle Kunden ab“ (Deal-Preise ohne Link/Code für alle), Hero-Slide „Newsletter-Aktion“ mit
