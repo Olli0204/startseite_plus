@@ -428,11 +428,96 @@ final class DealPageService
     /* --------------------------------------------------------- Hero-Slide */
 
     /**
+     * Zeile unter dem Rabatt der Aktions-Slide: "im Set mit Snowboard" (wie an den Artikeln) / "when bought with a snowboard".
+     */
+    public static function bundleLine(string $partner, bool $isEn): string
+    {
+        $partner = \trim($partner);
+        if ($partner === '') {
+            return $isEn ? 'in a bundle' : 'im Set';
+        }
+        if (!$isEn) {
+            return 'im Set mit ' . $partner;
+        }
+        $lower = \mb_strtolower(\mb_substr($partner, 0, 1)) . \mb_substr($partner, 1);
+
+        return 'when bought with ' . (\preg_match('/^[aeiou]/i', $partner) === 1 ? 'an ' : 'a ') . $lower;
+    }
+
+    /**
+     * Artikel-IDs auf ihre Vaterartikel zusammenfassen (Reihenfolge bleibt): Kategorie- und Merkmal-Regeln enthalten
+     * auch die Größen-Kinder, die Slide soll jedes Modell nur einmal zeigen.
+     *
+     * @param int[] $ids
+     * @return int[]
+     */
+    private function parentIDs(array $ids): array
+    {
+        $ids = \array_values(\array_filter(\array_map('intval', $ids)));
+        if ($ids === []) {
+            return [];
+        }
+        $parents = [];
+        try {
+            foreach ($this->db->getObjects(
+                'SELECT kArtikel, kVaterArtikel FROM tartikel WHERE kArtikel IN (' . \implode(',', $ids) . ')'
+            ) as $row) {
+                $parents[(int)$row->kArtikel] = (int)$row->kVaterArtikel;
+            }
+        } catch (\Throwable $e) {
+            $this->logError($e);
+        }
+        $result = [];
+        foreach ($ids as $id) {
+            $key          = ($parents[$id] ?? 0) > 0 ? $parents[$id] : $id;
+            $result[$key] = true;
+        }
+
+        return \array_keys($result);
+    }
+
+    /**
+     * Gemeinsames Namensende aller Kacheln weglassen ("Union Source FC Snowboardbindung 2027" → "Union Source FC"),
+     * damit die Namen in die schmalen Kacheln passen; nur bei mindestens zwei Artikeln und wenn jeder Name etwas behält.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    public static function trimCommonSuffix(array $items): array
+    {
+        if (\count($items) < 2) {
+            return $items;
+        }
+        $words  = \array_map(static fn(array $item): array => \preg_split('/\s+/u', \trim((string)$item['name'])) ?: [], $items);
+        $common = 0;
+        while (true) {
+            $next = null;
+            foreach ($words as $list) {
+                $word = $list[\count($list) - 1 - $common] ?? null;
+                if ($word === null || \count($list) - $common - 1 < 1 || ($next !== null && \mb_strtolower($word) !== \mb_strtolower($next))) {
+                    break 2;
+                }
+                $next ??= $word;
+            }
+            ++$common;
+        }
+        if ($common === 0) {
+            return $items;
+        }
+        foreach ($items as $i => $item) {
+            $items[$i]['name'] = \implode(' ', \array_slice($words[$i], 0, \count($words[$i]) - $common));
+        }
+
+        return $items;
+    }
+
+    /**
      * Anzeige-Daten für die Hero-Slide "Newsletter-Aktion" (gleiches Format wie DealService::view(), gerendert von
      * Portlets/Common/deal-hero.tpl): bis zu 4 Artikel der Deal-Preise mit Aktionspreis, Button auf die Deal-Seite.
      * Im Shop nur in der öffentlichen Phase; sonst null (OPC-Vorschau: Karte mit Hinweis).
      *
-     * @param array<string, string> $opts kicker, title, text, linkLabel (leer = aus der Deal-Seite)
+     * @param array<string, string> $opts kicker, title, text, linkLabel (leer = aus der Deal-Seite), link (leer = Banner-
+     *     Kategorie der Aktion, sonst Deal-Seite), products (Artikel-IDs, leer = aus den Deal-Preisen)
      * @return array<string, mixed>|null
      */
     public function slideView(int $dealID, array $opts, bool $isPreview): ?array
@@ -447,10 +532,12 @@ final class DealPageService
         }
         $isEn   = CountdownService::currentLanguage() === 'eng';
         $pick   = static fn(string $de, string $en): string => $isEn && \trim($en) !== '' ? \trim($en) : \trim($de);
+        $pricing  = new DealPricing($this->db);
+        $rules    = $pricing->rulesFor([(int)$row->id]);
         $prices   = [];
         $percents = [];
         $order    = [];
-        foreach ((new DealPricing($this->db))->rulesFor([(int)$row->id]) as $rule) {
+        foreach ($rules as $rule) {
             foreach ($rule['products'] as $id) {
                 $order[$id] = true;
                 if ($rule['type'] === 'setpct') {
@@ -463,24 +550,53 @@ final class DealPageService
                 }
             }
         }
+        // Artikel: in der Slide gewählt, sonst aus den Deal-Preisen – automatisch ohne doppelte Modelle (gleicher Name,
+        // z. B. Farbvarianten als eigene Artikel)
+        $picked     = self::parseIds($opts['products'] ?? '');
+        $candidates = $picked !== []
+            ? \array_slice($picked, 0, DealService::MAX_PRODUCTS)
+            : \array_slice($this->parentIDs(\array_keys($order)), 0, DealService::MAX_PRODUCTS * 3);
         $items = [];
-        foreach (DealService::create()->loadProducts(\array_slice(\array_keys($order), 0, DealService::MAX_PRODUCTS)) as $product) {
+        $names = [];
+        foreach (DealService::create()->loadProducts($candidates) as $product) {
+            $name = DealService::plain($product->cName);
+            if ($picked === [] && isset($names[\mb_strtolower($name)])) {
+                continue;
+            }
+            $names[\mb_strtolower($name)] = true;
             $image   = $product->Bilder[0] ?? null;
             $pid     = (int)$product->kArtikel;
+            $parent  = (int)($product->kVaterArtikel ?? 0);
             $shop    = (float)($product->Preise->fVKBrutto ?? 0);
-            if (isset($percents[$pid]) && $shop > 0) {
-                $byPct        = \round($shop * (100 - $percents[$pid]) / 100, 2);
-                $prices[$pid] = isset($prices[$pid]) ? \min($prices[$pid], $byPct) : $byPct;
+            // automatisch gewählte Väter stammen aus den Regeln, auch wenn dort nur ihre Kinder stehen
+            $percent = $percents[$pid] ?? ($parent > 0 ? ($percents[$parent] ?? null) : null)
+                ?? ($picked === [] && $percents !== [] ? \max($percents) : null);
+            $price   = $prices[$pid] ?? ($parent > 0 ? ($prices[$parent] ?? null) : null);
+            if ($percent !== null && $shop > 0) {
+                $byPct = \round($shop * (100 - $percent) / 100, 2);
+                $price = $price !== null ? \min($price, $byPct) : $byPct;
             }
             $items[] = [
-                'id'      => (int)$product->kArtikel,
-                'name'    => DealService::plain($product->cName),
+                'id'      => $pid,
+                'name'    => $name,
                 'variant' => '',
                 'url'     => (string)($product->cURLFull ?? ''),
                 'image'   => (string)($image->cURLNormal ?? $image->cURLKlein ?? ''),
-                'price'   => DealPricing::formatGross((float)($prices[(int)$product->kArtikel] ?? 0)),
+                'price'   => $price !== null ? DealPricing::formatGross($price) : '',
             ];
+            if (\count($items) >= DealService::MAX_PRODUCTS) {
+                break;
+            }
         }
+        $items = self::trimCommonSuffix($items);
+        // Prozent-Aktion (z. B. Bindungen −20 % zu jedem Snowboard): Rabatt groß, Aktionspreis an den Kacheln
+        $pctRule = null;
+        foreach ($rules as $rule) {
+            if ($rule['type'] === 'setpct' && ($pctRule === null || $rule['price'] > $pctRule['price'])) {
+                $pctRule = $rule;
+            }
+        }
+        $partner = $pctRule !== null ? $pricing->partnerText($pctRule) : '';
         $until    = self::timestamp($row->valid_until ?? null);
         $langID   = DealPageRoute::languageIDs()[$isEn ? 'eng' : 'ger'] ?? null;
         $slug     = $isEn && self::isValidSlug((string)($row->slug_en ?? '')) ? (string)$row->slug_en : (string)$row->slug;
@@ -504,10 +620,10 @@ final class DealPageService
             'kicker'      => ($opts['kicker'] ?? '') !== '' ? $opts['kicker'] : ($isEn ? 'Now available to everyone' : 'Jetzt für alle'),
             'title'       => ($opts['title'] ?? '') !== '' ? $opts['title'] : $pick((string)$row->title, (string)$row->title_en),
             'text'        => ($opts['text'] ?? '') !== '' ? $opts['text'] : $pick((string)($row->text ?? ''), (string)($row->text_en ?? '')),
-            'showPrices'  => false,
+            'showPrices'  => $pctRule !== null,
             'sum'         => '',
-            'total'       => '',
-            'withCode'    => '',
+            'total'       => $pctRule !== null ? DealPricing::formatPercent($pctRule['price']) : '',
+            'withCode'    => $pctRule === null ? '' : self::bundleLine($partner, $isEn),
             'savingLabel' => '',
             'validUntil'  => $until,
             'showValid'   => $until !== null,
@@ -518,7 +634,9 @@ final class DealPageService
             'codeLabel'   => '',
             'copyLabel'   => '',
             'copiedLabel' => '',
-            'link'        => self::url($slug, $langID),
+            'link'        => ($opts['link'] ?? '') !== ''
+                ? (string)$opts['link']
+                : (DealService::create()->categoryUrl((int)($row->banner_category ?? 0)) ?: self::url($slug, $langID)),
             'linkLabel'   => ($opts['linkLabel'] ?? '') !== '' ? $opts['linkLabel'] : ($isEn ? 'View deals' : 'Zur Aktion'),
             'canAdd'      => false,
             'hasAction'   => true,

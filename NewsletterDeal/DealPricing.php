@@ -421,7 +421,7 @@ final class DealPricing
      *
      * @param array<string, mixed> $rule
      */
-    private function partnerText(array $rule): string
+    public function partnerText(array $rule): string
     {
         if (($rule['partnerFeature'] ?? 0) > 0) {
             return $this->featureName($rule['partnerFeature']);
