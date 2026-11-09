@@ -19,7 +19,10 @@ use stdClass;
  *   price – Festpreis: jeder der Artikel kostet je Stück den Bruttopreis
  *   set   – Set-Preis: liegt einer der Partnerartikel im Warenkorb, kostet der Artikel je Stück den Bruttopreis
  *           (höchstens so viele Stück wie Partnerartikel im Warenkorb liegen)
- * Ein Vaterartikel in einer Regel gilt für alle seine Varianten.
+ *   setpct – Set-Rabatt: wie set, aber der Artikel kostet price Prozent weniger als sein aktueller Shop-Preis
+ * Ein Vaterartikel in einer Regel gilt für alle seine Varianten. Artikel und Set-Partner können zusätzlich über einen
+ * Merkmalwert gewählt werden (z. B. Warengruppe = Snowboard, seit 2.17.0); rulesFor() ergänzt dann alle Artikel mit
+ * diesem Merkmalwert (Vater oder Kind – matches() prüft beides).
  *
  * Freigeschaltet werden die Preise pro Sitzung: durch den Besuch des geheimen Links oder durch den Deal-Code im
  * Kupon-Feld. Der Warenkorb übernimmt sie in HOOK_SETZTE_POSITIONSPREISE direkt als Positionspreis (der Core ruft
@@ -29,8 +32,12 @@ final class DealPricing
 {
     public const SESSION_KEY = 'startseitePlusNlDeals';
     public const TABLE_RULES = 'startseite_plus_nl_deal_rule';
-    public const TYPES       = ['price', 'set'];
+    public const TYPES       = ['price', 'set', 'setpct'];
+    public const SET_TYPES   = ['set', 'setpct'];
     public const IO_FUNCTION = 'startseitePlusNlDealPrices';
+
+    /** @var array<int, int[]> Artikel-IDs je Merkmalwert (pro Request) */
+    private static array $featureArticles = [];
 
     /** @var array<int, array<string, mixed>>|null Regeln der freigeschalteten, laufenden Deals (pro Request) */
     private static ?array $active = null;
@@ -180,23 +187,39 @@ final class DealPricing
             return [];
         }
 
-        return \array_values(\array_filter(\array_map(static fn(stdClass $row): array => self::ruleFromRow($row), $rows),
+        $rules = \array_values(\array_filter(\array_map(static fn(stdClass $row): array => self::ruleFromRow($row), $rows),
             static fn(array $rule): bool => self::isUsable($rule)));
+
+        return \array_map(fn(array $rule): array => $this->expandFeatures($rule), $rules);
     }
 
     /**
+     * Regel aus einer Tabellenzeile (ohne Merkmal-Artikel – die ergänzt erst rulesFor()).
+     *
      * @return array<string, mixed>
      */
     public static function ruleFromRow(stdClass $row): array
     {
         return [
-            'id'       => (int)($row->id ?? 0),
-            'dealID'   => (int)($row->deal_id ?? 0),
-            'type'     => \in_array($row->type ?? '', self::TYPES, true) ? (string)$row->type : 'price',
-            'products' => DealPageService::parseIds((string)($row->products ?? '')),
-            'partners' => DealPageService::parseIds((string)($row->partners ?? '')),
-            'price'    => \round((float)($row->price ?? 0), 2),
+            'id'             => (int)($row->id ?? 0),
+            'dealID'         => (int)($row->deal_id ?? 0),
+            'type'           => \in_array($row->type ?? '', self::TYPES, true) ? (string)$row->type : 'price',
+            'products'       => DealPageService::parseIds((string)($row->products ?? '')),
+            'partners'       => DealPageService::parseIds((string)($row->partners ?? '')),
+            'productFeature' => \max(0, (int)($row->product_feature ?? 0)),
+            'partnerFeature' => \max(0, (int)($row->partner_feature ?? 0)),
+            'price'          => \round((float)($row->price ?? 0), 2),
+            'label'          => \trim((string)($row->label ?? '')),
+            'labelEn'        => \trim((string)($row->label_en ?? '')),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $rule
+     */
+    public static function isSetRule(array $rule): bool
+    {
+        return \in_array($rule['type'], self::SET_TYPES, true);
     }
 
     /**
@@ -204,7 +227,124 @@ final class DealPricing
      */
     public static function isUsable(array $rule): bool
     {
-        return $rule['products'] !== [] && $rule['price'] > 0 && ($rule['type'] !== 'set' || $rule['partners'] !== []);
+        if (($rule['products'] === [] && ($rule['productFeature'] ?? 0) <= 0) || $rule['price'] <= 0) {
+            return false;
+        }
+        if ($rule['type'] === 'setpct' && $rule['price'] >= 100) {
+            return false;
+        }
+
+        return !self::isSetRule($rule) || $rule['partners'] !== [] || ($rule['partnerFeature'] ?? 0) > 0;
+    }
+
+    /**
+     * Stückpreis (brutto) einer Regel für einen Artikel mit dem aktuellen Shop-Preis $normal.
+     *
+     * @param array<string, mixed> $rule
+     */
+    public static function rulePrice(array $rule, float $normal): float
+    {
+        return $rule['type'] === 'setpct' ? \round($normal * (100 - $rule['price']) / 100, 2) : (float)$rule['price'];
+    }
+
+    /**
+     * Artikel mit den Merkmalwerten der Regel ergänzen (Artikel und Set-Partner).
+     *
+     * @param array<string, mixed> $rule
+     * @return array<string, mixed>
+     */
+    private function expandFeatures(array $rule): array
+    {
+        $rule['pickedPartners'] = $rule['partners'];
+        foreach (['products' => 'productFeature', 'partners' => 'partnerFeature'] as $list => $feature) {
+            if (($rule[$feature] ?? 0) > 0) {
+                $rule[$list] = \array_values(\array_unique(\array_merge($rule[$list], $this->featureArticles($rule[$feature]))));
+            }
+        }
+
+        return $rule;
+    }
+
+    /**
+     * Alle Artikel (Väter und Kinder, wie von der Wawi übertragen) mit dem Merkmalwert.
+     *
+     * @return int[]
+     */
+    public function featureArticles(int $valueID): array
+    {
+        if ($valueID <= 0) {
+            return [];
+        }
+        if (!isset(self::$featureArticles[$valueID])) {
+            try {
+                self::$featureArticles[$valueID] = \array_map(
+                    static fn(stdClass $row): int => (int)$row->kArtikel,
+                    $this->db->getObjects(
+                        'SELECT DISTINCT kArtikel FROM tartikelmerkmal WHERE kMerkmalWert = :id',
+                        ['id' => $valueID]
+                    )
+                );
+            } catch (\Throwable $e) {
+                $this->logError($e);
+                self::$featureArticles[$valueID] = [];
+            }
+        }
+
+        return self::$featureArticles[$valueID];
+    }
+
+    /**
+     * Name eines Merkmalwerts in der aktuellen Sprache (Fallback: irgendeine Sprache).
+     */
+    public function featureName(int $valueID): string
+    {
+        if ($valueID <= 0) {
+            return '';
+        }
+        try {
+            $row = $this->db->getSingleObject(
+                'SELECT cWert FROM tmerkmalwertsprache WHERE kMerkmalWert = :id
+                    ORDER BY kSprache = :lang DESC, kSprache LIMIT 1',
+                ['id' => $valueID, 'lang' => Shop::getLanguageID()]
+            );
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return $row === null ? '' : self::plain($row->cWert);
+    }
+
+    /**
+     * Hinweistext einer Set-Regel in der aktuellen Sprache: eigener Text, sonst aus Partnern bzw. Merkmalwert gebildet.
+     *
+     * @param array<string, mixed> $rule
+     * @param string $partners Partnernamen (nur bei wenigen, einzeln gewählten Partnern)
+     */
+    public function setLabel(array $rule, string $partners = ''): string
+    {
+        $isEn   = CountdownService::currentLanguage() === 'eng';
+        $custom = $isEn && $rule['labelEn'] !== '' ? $rule['labelEn'] : $rule['label'];
+        if ($custom !== '') {
+            return $custom;
+        }
+        if (($rule['partnerFeature'] ?? 0) > 0) {
+            $partners = $this->featureName($rule['partnerFeature']);
+        }
+        if ($rule['type'] === 'setpct') {
+            $percent = self::formatPercent($rule['price']);
+
+            return $partners !== ''
+                ? \sprintf($isEn ? '%s in a set with %s' : '%s im Set mit %s', $percent, $partners)
+                : \sprintf($isEn ? '%s in a set' : '%s im Set', $percent);
+        }
+        $labels = self::labels();
+
+        return $partners !== '' ? \sprintf($labels['set'], $partners) : $labels['inSet'];
+    }
+
+    public static function formatPercent(float $percent): string
+    {
+        return '−' . \rtrim(\rtrim(\number_format($percent, 2, ',', ''), '0'), ',') . ' %';
     }
 
     /**
@@ -350,15 +490,20 @@ final class DealPricing
     /**
      * Günstigster Stückpreis (brutto) aus Festpreis- und Set-Regeln oder null, wenn der Shop-Preis günstiger ist.
      *
+     * Set-Partner werden über den ganzen Warenkorb verteilt: Positionen derselben Regel, die vor dieser Position im
+     * Warenkorb liegen, verbrauchen zuerst Partner (1 Board + 2 verschiedene Bindungen → nur eine Bindung reduziert).
+     *
      * @param array<int, array<string, mixed>> $rules
-     * @param array<int, array{0: int, 1: int, 2: float}> $cart Positionen als [kArtikel, kVaterArtikel, Menge]
-     * @return array{unit: float, single: ?float, set: ?float, setUnits: float, qty: float}|null
+     * @param array<int, array{0: int, 1: int, 2: float, 3?: bool}> $cart andere Positionen als
+     *     [kArtikel, kVaterArtikel, Menge, liegt vor dieser Position]
+     * @return array{unit: float, single: ?float, set: ?float, setUnits: float, qty: float, setRule: ?array}|null
      */
     public static function bestPrice(array $rules, int $productID, int $parentID, float $qty, float $normal, array $cart): ?array
     {
-        $single = null;
-        $set    = null;
-        $pairs  = 0.0;
+        $single  = null;
+        $set     = null;
+        $setRule = null;
+        $pairs   = 0.0;
         foreach ($rules as $rule) {
             if (!self::matches($rule['products'], $productID, $parentID)) {
                 continue;
@@ -368,14 +513,21 @@ final class DealPricing
                 continue;
             }
             $partnerQty = 0.0;
-            foreach ($cart as [$id, $parent, $count]) {
+            $used       = 0.0;
+            foreach ($cart as $position) {
+                [$id, $parent, $count] = $position;
                 if (self::matches($rule['partners'], $id, $parent)) {
                     $partnerQty += $count;
+                } elseif (($position[3] ?? false) && self::matches($rule['products'], $id, $parent)) {
+                    $used += $count;
                 }
             }
-            if ($partnerQty > 0 && ($set === null || $rule['price'] < $set)) {
-                $set   = $rule['price'];
-                $pairs = $partnerQty;
+            $available = $partnerQty - $used;
+            $price     = self::rulePrice($rule, $normal);
+            if ($available > 0 && ($set === null || $price < $set)) {
+                $set     = $price;
+                $setRule = $rule;
+                $pairs   = $available;
             }
         }
         $base     = $single !== null ? \min($single, $normal) : $normal;
@@ -385,26 +537,39 @@ final class DealPricing
             return null;
         }
 
-        return ['unit' => \round($unit, 4), 'single' => $single, 'set' => $setUnits > 0 ? $set : null, 'setUnits' => $setUnits, 'qty' => $qty];
+        return [
+            'unit'     => \round($unit, 4),
+            'single'   => $single,
+            'set'      => $setUnits > 0 ? $set : null,
+            'setUnits' => $setUnits,
+            'qty'      => $qty,
+            'setRule'  => $setUnits > 0 ? $setRule : null,
+        ];
     }
 
     /**
-     * Artikelpositionen des Warenkorbs ohne die gerade berechnete Position.
+     * Artikelpositionen des Warenkorbs ohne die gerade berechnete Position, mit Merker "liegt davor".
      *
-     * @return array<int, array{0: int, 1: int, 2: float}>
+     * @return array<int, array{0: int, 1: int, 2: float, 3: bool}>
      */
     private function cartQuantities(object $current): array
     {
-        $list = [];
+        $list   = [];
+        $before = true;
         try {
             foreach (Frontend::getCart()->PositionenArr as $position) {
-                if ($position === $current || (int)($position->nPosTyp ?? 0) !== \C_WARENKORBPOS_TYP_ARTIKEL) {
+                if ($position === $current) {
+                    $before = false;
+                    continue;
+                }
+                if ((int)($position->nPosTyp ?? 0) !== \C_WARENKORBPOS_TYP_ARTIKEL) {
                     continue;
                 }
                 $list[] = [
                     (int)$position->kArtikel,
                     (int)($position->Artikel->kVaterArtikel ?? 0),
                     (float)$position->nAnzahl,
+                    $before,
                 ];
             }
         } catch (\Throwable) {
@@ -414,12 +579,21 @@ final class DealPricing
     }
 
     /**
-     * @param array{unit: float, single: ?float, set: ?float, setUnits: float, qty: float} $result
+     * @param array{unit: float, single: ?float, set: ?float, setUnits: float, qty: float, setRule: ?array} $result
      */
     private function note(array $result, float $normal): string
     {
         $isEn    = CountdownService::currentLanguage() === 'eng';
         $instead = self::formatGross($normal);
+        $rule    = $result['setRule'] ?? null;
+        if ($result['set'] !== null && $rule !== null && $rule['type'] === 'setpct') {
+            $text = $this->setLabel($rule);
+            if ($result['setUnits'] < $result['qty']) {
+                $text = self::formatQty($result['setUnits']) . '× ' . $text;
+            }
+
+            return $text . ($isEn ? ' (instead of ' : ' (statt ') . $instead . ')';
+        }
         if ($result['set'] !== null && $result['setUnits'] < $result['qty']) {
             return $isEn
                 ? \sprintf('Newsletter deal: %s× set price %s (instead of %s)', self::formatQty($result['setUnits']), self::formatGross($result['set']), $instead)
@@ -452,32 +626,39 @@ final class DealPricing
         $modes      = $this->displayModes(\array_values(\array_unique(\array_column($rules, 'dealID'))));
         $partnerIDs = [];
         foreach ($rules as $rule) {
-            $partnerIDs = \array_merge($partnerIDs, $rule['partners']);
+            $partnerIDs = \array_merge($partnerIDs, $rule['pickedPartners'] ?? []);
         }
         $names  = $this->partnerNames($partnerIDs);
         $labels = self::labels();
         $map    = [];
         foreach ($rules as $rule) {
             $mode = $modes[$rule['dealID']] ?? 'line';
+            $set  = null;
+            if (self::isSetRule($rule)) {
+                // Partnernamen nur aus einzeln gewählten Partnern (Varianten zum Vater zusammengefasst, jeder Name
+                // einmal); bei Merkmal-Partnern nennt setLabel() den Merkmalwert
+                $partners = \implode(' / ', \array_values(\array_unique(\array_filter(\array_map(
+                    static fn(int $partner): string => $names[$partner] ?? '',
+                    $rule['pickedPartners'] ?? []
+                )))));
+                $label    = $this->setLabel($rule, $partners);
+                // setpct: den Preis rechnet newsletter-deal.js aus dem aktuellen Shop-Preis (data-sp-nld-current)
+                $set = $rule['type'] === 'setpct'
+                    ? ['price' => '', 'value' => null, 'percent' => $rule['price'], 'label' => $label,
+                       'short' => self::formatPercent($rule['price']) . ' ' . $labels['inSet'],
+                       'badge' => $labels['setShort'] . ' ' . self::formatPercent($rule['price'])]
+                    : ['price' => self::formatGross($rule['price']), 'value' => $rule['price'], 'label' => $label];
+            }
             foreach ($rule['products'] as $id) {
                 $map[$id] ??= ['value' => null, 'mode' => $mode, 'sets' => [], 'singleMode' => null];
-                if ($rule['type'] === 'price') {
-                    if ($map[$id]['value'] === null || $rule['price'] < $map[$id]['value']) {
-                        $map[$id]['value']      = $rule['price'];
-                        $map[$id]['singleMode'] = $mode;
-                    }
+                if ($set !== null) {
+                    $map[$id]['sets'][] = $set;
                     continue;
                 }
-                // Partner einer Regel: Varianten zum Vaterartikel zusammengefasst, jeder Name nur einmal
-                $partners           = \implode(' / ', \array_values(\array_unique(\array_filter(\array_map(
-                    static fn(int $partner): string => $names[$partner] ?? '',
-                    $rule['partners']
-                )))));
-                $map[$id]['sets'][] = [
-                    'price' => self::formatGross($rule['price']),
-                    'value' => $rule['price'],
-                    'label' => $partners !== '' ? \sprintf($labels['set'], $partners) : $labels['inSet'],
-                ];
+                if ($map[$id]['value'] === null || $rule['price'] < $map[$id]['value']) {
+                    $map[$id]['value']      = $rule['price'];
+                    $map[$id]['singleMode'] = $mode;
+                }
             }
         }
         foreach ($map as $id => $entry) {
@@ -567,6 +748,9 @@ final class DealPricing
             'oldPrice' => $isEn ? 'Old price' : 'Alter Preis',
             'badge'    => $isEn ? 'Newsletter' : 'Newsletter',
             'setBadge' => $isEn ? 'Newsletter set' : 'Newsletter-Set',
+            'setShort' => $isEn ? 'Set' : 'Set',
+            'locale'   => $isEn ? 'en-GB' : 'de-DE',
+            'currency' => self::currencyCode(),
         ];
     }
 
@@ -614,6 +798,15 @@ final class DealPricing
             return \html_entity_decode(Preise::getLocalizedPriceString($gross, null, true), \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
         } catch (\Throwable) {
             return \number_format($gross, 2, ',', '.') . ' €';
+        }
+    }
+
+    private static function currencyCode(): string
+    {
+        try {
+            return (string)(Frontend::getCurrency()->getCode() ?: 'EUR');
+        } catch (\Throwable) {
+            return 'EUR';
         }
     }
 

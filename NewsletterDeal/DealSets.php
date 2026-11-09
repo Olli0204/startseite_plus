@@ -57,7 +57,7 @@ final class DealSets
         }
         $ids = [];
         foreach ($this->pricing->runningRules() as $rule) {
-            if ($rule['type'] !== 'set') {
+            if (!self::hasConfigurator($rule)) {
                 continue;
             }
             foreach (\array_merge($rule['products'], $rule['partners']) as $id) {
@@ -69,12 +69,23 @@ final class DealSets
     }
 
     /**
+     * Set-Konfigurator nur für Set-Preise mit einzeln gewählten Artikeln – nicht für Prozent-Rabatte und Merkmal-Regeln
+     * (z. B. alle Snowboards), deren Auswahl für eine Karte zu groß wäre.
+     *
+     * @param array<string, mixed> $rule
+     */
+    public static function hasConfigurator(array $rule): bool
+    {
+        return $rule['type'] === 'set' && ($rule['productFeature'] ?? 0) <= 0 && ($rule['partnerFeature'] ?? 0) <= 0;
+    }
+
+    /**
      * Hat die Deal-Seite Set-Regeln? (Platzhalter auf der Deal-Seite)
      */
     public function dealHasSets(int $dealID): bool
     {
         foreach ($this->pricing->rulesFor([$dealID]) as $rule) {
-            if ($rule['type'] === 'set') {
+            if (self::hasConfigurator($rule)) {
                 return true;
             }
         }
@@ -98,7 +109,7 @@ final class DealSets
         $parent  = (int)($context['parent'] ?? 0);
         $sets    = [];
         foreach ($this->pricing->activeRules() as $rule) {
-            if ($rule['type'] !== 'set') {
+            if (!self::hasConfigurator($rule)) {
                 continue;
             }
             if ($dealID > 0 && $rule['dealID'] !== $dealID) {
@@ -130,7 +141,7 @@ final class DealSets
         }
         $rule = null;
         foreach ($this->pricing->activeRules() as $candidate) {
-            if ($candidate['type'] === 'set' && $candidate['id'] === (int)$ruleID) {
+            if (self::hasConfigurator($candidate) && $candidate['id'] === (int)$ruleID) {
                 $rule = $candidate;
                 break;
             }

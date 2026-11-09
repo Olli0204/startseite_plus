@@ -54,6 +54,7 @@ final class DealPageAdmin
             ->assign('nldBaseUrl', $this->tabUrl())
             ->assign('nldShopUrl', \rtrim(Shop::getURL(), '/') . '/')
             ->assign('nldPrefix', DealPageService::SLUG_PREFIX)
+            ->assign('nldFeatures', $form === null ? [] : $this->featureOptions())
             ->assign('nldRuleTpl', $this->plugin->getPaths()->getAdminPath() . 'templates/newsletter_deal_rule.tpl')
             ->assign('nldPickerCore', \rtrim($this->plugin->getPaths()->getBasePath(), '/') . '/portlet_input_types/picker-core.tpl')
             ->assign('nldNow', \date('d.m.Y H:i'));
@@ -235,10 +236,14 @@ final class DealPageAdmin
             'display'     => DealPricing::displayMode((string)($row->display ?? '')),
             'products'    => (string)($row->products ?? ''),
             'rules'       => \array_map(static fn(array $rule): array => [
-                'type'     => $rule['type'],
-                'products' => \implode(';', $rule['products']),
-                'partners' => \implode(';', $rule['partners']),
-                'price'    => $rule['price'] > 0 ? \number_format((float)$rule['price'], 2, '.', '') : '',
+                'type'           => $rule['type'],
+                'products'       => \implode(';', $rule['products']),
+                'partners'       => \implode(';', $rule['partners']),
+                'price'          => $rule['price'] > 0 ? \number_format((float)$rule['price'], 2, '.', '') : '',
+                'productFeature' => (int)$rule['productFeature'],
+                'partnerFeature' => (int)$rule['partnerFeature'],
+                'label'          => (string)$rule['label'],
+                'labelEn'        => (string)$rule['labelEn'],
             ], \is_array($row->rules ?? null) ? $row->rules : $this->loadRules((int)$row->id)),
             'valid_from'  => $input($row->valid_from ?? null),
             'valid_until' => $input($row->valid_until ?? null),
@@ -330,28 +335,82 @@ final class DealPageAdmin
             }
             $priceRaw = \str_replace(',', '.', \trim((string)($input['price'] ?? '')));
             $rule     = DealPricing::ruleFromRow((object)[
-                'type'     => (string)($input['type'] ?? 'price'),
-                'products' => (string)($input['products'] ?? ''),
-                'partners' => (string)($input['partners'] ?? ''),
-                'price'    => \is_numeric($priceRaw) ? (float)$priceRaw : 0,
+                'type'            => (string)($input['type'] ?? 'price'),
+                'products'        => (string)($input['products'] ?? ''),
+                'partners'        => (string)($input['partners'] ?? ''),
+                'product_feature' => (int)($input['product_feature'] ?? 0),
+                'partner_feature' => (int)($input['partner_feature'] ?? 0),
+                'price'           => \is_numeric($priceRaw) ? (float)$priceRaw : 0,
+                'label'           => \mb_substr(\trim((string)($input['label'] ?? '')), 0, 160),
+                'label_en'        => \mb_substr(\trim((string)($input['label_en'] ?? '')), 0, 160),
             ]);
-            if ($rule['type'] !== 'set') {
-                $rule['partners'] = [];
+            if (!DealPricing::isSetRule($rule)) {
+                $rule['partners']       = [];
+                $rule['partnerFeature'] = 0;
+                $rule['label']          = '';
+                $rule['labelEn']        = '';
             }
-            if ($rule['products'] === [] && $rule['partners'] === [] && $priceRaw === '') {
+            if ($rule['products'] === [] && $rule['partners'] === [] && $rule['productFeature'] === 0
+                && $rule['partnerFeature'] === 0 && $priceRaw === ''
+            ) {
                 continue;
             }
             if (!DealPricing::isUsable($rule)) {
-                $errors[] = \sprintf(
-                    'Deal-Preis %d: bitte Artikel%s und einen Preis über 0 angeben.',
-                    $i + 1,
-                    $rule['type'] === 'set' ? ', Set-Partner' : ''
-                );
+                $errors[] = $rule['type'] === 'setpct'
+                    ? \sprintf('Deal-Preis %d: bitte Artikel, Set-Partner und einen Rabatt zwischen 0 und 100 %% angeben.', $i + 1)
+                    : \sprintf(
+                        'Deal-Preis %d: bitte Artikel%s und einen Preis über 0 angeben.',
+                        $i + 1,
+                        $rule['type'] === 'set' ? ', Set-Partner' : ''
+                    );
             }
             $rules[] = $rule;
         }
 
         return $rules;
+    }
+
+    /** Merkmale mit mehr Werten (z. B. Größen) stehen nicht zur Auswahl */
+    private const MAX_FEATURE_VALUES = 150;
+
+    /**
+     * Merkmalwerte für die Auswahl "Artikel mit Merkmal" (gruppiert nach Merkmal, mit Anzahl Artikel ohne Varianten).
+     *
+     * @return array<int, array{name: string, values: array<int, array{id: int, name: string, count: int}>}>
+     */
+    private function featureOptions(): array
+    {
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT m.kMerkmal, m.cName AS feature, w.kMerkmalWert, COALESCE(ws.cWert, "") AS value,
+                        COUNT(DISTINCT IF(a.kVaterArtikel > 0, a.kVaterArtikel, a.kArtikel)) AS cnt
+                    FROM tmerkmalwert w
+                    JOIN tmerkmal m ON m.kMerkmal = w.kMerkmal
+                    LEFT JOIN tmerkmalwertsprache ws ON ws.kMerkmalWert = w.kMerkmalWert AND ws.kSprache = :lang
+                    LEFT JOIN tartikelmerkmal am ON am.kMerkmalWert = w.kMerkmalWert
+                    LEFT JOIN tartikel a ON a.kArtikel = am.kArtikel
+                    GROUP BY m.kMerkmal, m.cName, m.nSort, w.kMerkmalWert, w.nSort, ws.cWert
+                    ORDER BY m.nSort, m.cName, w.nSort, ws.cWert',
+                ['lang' => $this->langID('ger') ?? 0]
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+        $groups = [];
+        foreach ($rows as $row) {
+            $id                     = (int)$row->kMerkmal;
+            $groups[$id]          ??= ['name' => \trim((string)$row->feature), 'values' => []];
+            $groups[$id]['values'][] = [
+                'id'    => (int)$row->kMerkmalWert,
+                'name'  => \trim((string)$row->value) !== '' ? \trim((string)$row->value) : '#' . (int)$row->kMerkmalWert,
+                'count' => (int)$row->cnt,
+            ];
+        }
+
+        return \array_values(\array_filter(
+            $groups,
+            static fn(array $group): bool => \count($group['values']) <= self::MAX_FEATURE_VALUES
+        ));
     }
 
     /**
@@ -390,10 +449,14 @@ final class DealPageAdmin
             $this->db->insert(DealPricing::TABLE_RULES, (object)[
                 'deal_id'  => $dealID,
                 'type'     => $rule['type'],
-                'products' => \implode(';', $rule['products']),
-                'partners' => \implode(';', $rule['partners']),
-                'price'    => \number_format((float)$rule['price'], 2, '.', ''),
-                'sort'     => $sort,
+                'products'        => \implode(';', $rule['products']),
+                'partners'        => \implode(';', $rule['partners']),
+                'product_feature' => (int)$rule['productFeature'],
+                'partner_feature' => (int)$rule['partnerFeature'],
+                'price'           => \number_format((float)$rule['price'], 2, '.', ''),
+                'label'           => (string)$rule['label'],
+                'label_en'        => (string)$rule['labelEn'],
+                'sort'            => $sort,
             ]);
         }
     }

@@ -15,8 +15,13 @@
     .sp-nld .sp-nld-rule-text { margin: 0 0 .35rem; font-size: .85em; color: var(--body-color, #212529); opacity: .7; }
     .sp-nld .sp-nld-rule-partners { margin-top: .6rem; }
     .sp-nld .sp-nld-rule[data-type="price"] .sp-nld-rule-partners,
-    .sp-nld .sp-nld-rule[data-type="price"] [data-for="set"],
-    .sp-nld .sp-nld-rule[data-type="set"] [data-for="price"] { display: none; }
+    .sp-nld .sp-nld-rule[data-type="price"] [data-for]:not([data-for~="price"]),
+    .sp-nld .sp-nld-rule[data-type="set"] [data-for]:not([data-for~="set"]),
+    .sp-nld .sp-nld-rule[data-type="setpct"] [data-for]:not([data-for~="setpct"]) { display: none; }
+    .sp-nld .sp-nld-rule-feature { margin-top: .4rem; max-width: 32rem; }
+    .sp-nld .sp-nld-rule-feature label { display: block; }
+    .sp-nld .sp-nld-rule-labels { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
+    .sp-nld .sp-nld-rule-labels .form-control { flex: 1 1 16rem; }
     .sp-nld .sp-nld-rule-add { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .35rem; }
 </style>
 <div class="sp-nld">
@@ -285,20 +290,23 @@
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <div id="sp-nld-rules">
                             {foreach $nldForm.rules as $rule}
-                                {include file=$nldRuleTpl rule=$rule idx=$rule@index}
+                                {include file=$nldRuleTpl rule=$rule idx=$rule@index features=$nldFeatures}
                             {/foreach}
                         </div>
                         <template id="sp-nld-rule-template">
-                            {include file=$nldRuleTpl rule=['type' => 'price', 'products' => '', 'partners' => '', 'price' => ''] idx='__i__'}
+                            {include file=$nldRuleTpl rule=['type' => 'price', 'products' => '', 'partners' => '', 'price' => '', 'productFeature' => 0, 'partnerFeature' => 0, 'label' => '', 'labelEn' => ''] idx='__i__' features=$nldFeatures}
                         </template>
                         <div class="sp-nld-rule-add">
                             <button type="button" class="btn btn-outline-primary" data-sp-nld-add="price"><i class="fal fa-plus"></i> Festpreis</button>
                             <button type="button" class="btn btn-outline-primary" data-sp-nld-add="set"><i class="fal fa-plus"></i> Set-Preis</button>
+                            <button type="button" class="btn btn-outline-primary" data-sp-nld-add="setpct"><i class="fal fa-plus"></i> Set-Rabatt %</button>
                         </div>
                         <small class="text-muted">Bruttopreise je Stück. Sie gelten im Warenkorb für Kunden, die den Link besucht oder
                             den Deal-Code eingegeben haben, und nur, solange sie günstiger als der Shop-Preis sind. Beispiel:
                             Festpreis 250 € für die Boards, Festpreis 120 € für die Upshot und Set-Preis 100 € für die Upshot mit
-                            dem Odyssey als Set-Partner. Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.</small>
+                            dem Odyssey als Set-Partner. Bundle-Aktion: Set-Rabatt 20 % für alle Artikel mit „Warengruppe: Bindung“ und
+                            „Warengruppe: Snowboard“ als Set-Partner – mit „Für alle Kunden ab“ gilt sie ohne Link und Code.
+                            Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.</small>
                     </div>
                 </div>
                 <div class="form-group form-row">
