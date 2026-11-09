@@ -223,6 +223,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.20.1         | 5.5.1 – 5.8.3 |
 | 2.20.0         | 5.5.1 – 5.8.3 |
 | 2.19.3         | 5.5.1 – 5.8.3 |
 | 2.19.2         | 5.5.1 – 5.8.3 |
@@ -251,6 +252,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.20.1
+- Aktions-Slide: Kachelnamen kürzen jetzt die längste gemeinsame Wortfolge (auch mitten im Namen, z. B. „Snowboard
+  Bindings 2027“ vor einer Farbangabe); englisch „when bought with snowboards“ ohne Artikel bei Mehrzahl
 
 ### 2.20.0
 - Hero-Slide „Newsletter-Aktion“: Button auf eine wählbare Kategorie bzw. eigenen Link (ohne Angabe: Banner-Kategorie

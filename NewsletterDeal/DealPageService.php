@@ -439,7 +439,12 @@ final class DealPageService
         if (!$isEn) {
             return 'im Set mit ' . $partner;
         }
-        $lower = \mb_strtolower(\mb_substr($partner, 0, 1)) . \mb_substr($partner, 1);
+        // Gattungswort ("Snowboard") klein, mehrteilige Namen (Marken) unverändert
+        $lower = \str_contains($partner, ' ') ? $partner : \mb_strtolower(\mb_substr($partner, 0, 1)) . \mb_substr($partner, 1);
+        // Mehrzahl (z. B. Kategorie "Snowboards") ohne Artikel
+        if (\preg_match('/[^s]s$/i', $partner) === 1) {
+            return 'when bought with ' . $lower;
+        }
 
         return 'when bought with ' . (\preg_match('/^[aeiou]/i', $partner) === 1 ? 'an ' : 'a ') . $lower;
     }
@@ -477,8 +482,10 @@ final class DealPageService
     }
 
     /**
-     * Gemeinsames Namensende aller Kacheln weglassen ("Union Source FC Snowboardbindung 2027" → "Union Source FC"),
-     * damit die Namen in die schmalen Kacheln passen; nur bei mindestens zwei Artikeln und wenn jeder Name etwas behält.
+     * Gemeinsamen Namensteil aller Kacheln weglassen, damit die Namen in die schmalen Kacheln passen:
+     * die längste Wortfolge (mindestens zwei Wörter), die in jedem Namen vorkommt, z. B. "Snowboard Bindings 2027" –
+     * "Union Source FC Snowboard Bindings 2027 FC" wird zu "Union Source FC" (direkt doppelte Wörter fallen zusammen).
+     * Nur bei mindestens zwei Artikeln und wenn jeder Name etwas behält.
      *
      * @param array<int, array<string, mixed>> $items
      * @return array<int, array<string, mixed>>
@@ -488,27 +495,68 @@ final class DealPageService
         if (\count($items) < 2) {
             return $items;
         }
-        $words  = \array_map(static fn(array $item): array => \preg_split('/\s+/u', \trim((string)$item['name'])) ?: [], $items);
-        $common = 0;
-        while (true) {
-            $next = null;
-            foreach ($words as $list) {
-                $word = $list[\count($list) - 1 - $common] ?? null;
-                if ($word === null || \count($list) - $common - 1 < 1 || ($next !== null && \mb_strtolower($word) !== \mb_strtolower($next))) {
-                    break 2;
+        $words = \array_map(
+            static fn(array $item): array => \preg_split('/\s+/u', \trim((string)$item['name'])) ?: [],
+            $items
+        );
+        $lower = \array_map(static fn(array $list): array => \array_map('mb_strtolower', $list), $words);
+        $first = $lower[0];
+        $best  = [];
+        for ($start = 0; $start < \count($first); $start++) {
+            for ($len = \count($first) - $start; $len >= 2 && $len > \count($best); $len--) {
+                $seq = \array_slice($first, $start, $len);
+                $all = true;
+                foreach ($lower as $list) {
+                    if (self::findSequence($list, $seq) < 0) {
+                        $all = false;
+                        break;
+                    }
                 }
-                $next ??= $word;
+                if ($all) {
+                    $best = $seq;
+                    break;
+                }
             }
-            ++$common;
         }
-        if ($common === 0) {
+        if ($best === []) {
             return $items;
         }
+        $result = [];
+        foreach ($words as $i => $list) {
+            $pos  = self::findSequence($lower[$i], $best);
+            $rest = \array_merge(\array_slice($list, 0, $pos), \array_slice($list, $pos + \count($best)));
+            $kept = [];
+            foreach ($rest as $word) {
+                if ($kept === [] || \mb_strtolower($kept[\count($kept) - 1]) !== \mb_strtolower($word)) {
+                    $kept[] = $word;
+                }
+            }
+            if ($kept === []) {
+                return $items;
+            }
+            $result[$i] = \implode(' ', $kept);
+        }
         foreach ($items as $i => $item) {
-            $items[$i]['name'] = \implode(' ', \array_slice($words[$i], 0, \count($words[$i]) - $common));
+            $items[$i]['name'] = $result[$i];
         }
 
         return $items;
+    }
+
+    /**
+     * @param string[] $haystack
+     * @param string[] $needle
+     */
+    private static function findSequence(array $haystack, array $needle): int
+    {
+        $n = \count($needle);
+        for ($i = 0; $i + $n <= \count($haystack); $i++) {
+            if (\array_slice($haystack, $i, $n) === $needle) {
+                return $i;
+            }
+        }
+
+        return -1;
     }
 
     /**
