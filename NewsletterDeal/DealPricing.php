@@ -580,19 +580,22 @@ final class DealPricing
     {
         $isEn  = CountdownService::currentLanguage() === 'eng';
         $rule  = $result['setRule'] ?? null;
+        $isPct = $rule !== null && $rule['type'] === 'setpct';
+        // kurz: die Stückpreis-Spalte ist neben der Bestellübersicht nur ~70 px breit (Erklärung im Tooltip)
         $badge = match (true) {
-            $rule !== null && $rule['type'] === 'setpct' => ($isEn ? 'Set discount ' : 'Set-Rabatt ') . self::formatPercent($rule['price']),
-            $result['set'] !== null                       => $isEn ? 'Set price' : 'Set-Preis',
-            default                                       => self::labels()['price'],
+            $isPct                  => self::formatPercent($rule['price']),
+            $result['set'] !== null => $isEn ? 'Set price' : 'Set-Preis',
+            default                 => self::labels()['badge'],
         };
         $units = $result['set'] !== null && $result['setUnits'] < $result['qty']
             ? \sprintf($isEn ? 'for %s of %s' : 'für %s von %s Stück', self::formatQty($result['setUnits']), self::formatQty($result['qty']))
             : '';
+        $sub   = \trim(($isPct ? ($isEn ? 'Set discount' : 'Set-Rabatt') : '') . ' ' . $units);
 
         return [
             'regular' => self::formatGross($normal),
             'badge'   => $badge,
-            'units'   => $units,
+            'units'   => $sub,
             'title'   => $rule !== null ? $this->note($result, $normal) : '',
         ];
     }
