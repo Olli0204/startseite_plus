@@ -17,9 +17,10 @@ use stdClass;
  */
 final class DealPageService
 {
-    public const TABLE        = 'startseite_plus_nl_deal';
-    public const MAX_PRODUCTS = 200;
-    public const SLUG_PREFIX  = 'newsletter-deals';
+    public const TABLE             = 'startseite_plus_nl_deal';
+    public const MAX_PRODUCTS      = 200;
+    public const MAX_RULE_PRODUCTS = 3000;
+    public const SLUG_PREFIX       = 'newsletter-deals';
 
     public function __construct(private readonly DbInterface $db)
     {
@@ -250,7 +251,8 @@ final class DealPageService
             foreach ((new DealPricing($this->db))->rulesFor([(int)$row->id]) as $rule) {
                 $ids = \array_merge($ids, $rule['products'], $rule['partners']);
             }
-            $ids = \array_slice(\array_values(\array_unique($ids)), 0, self::MAX_PRODUCTS);
+            // Merkmal-Regeln (z. B. alle Snowboards) können mehr Artikel bringen als der Picker erlaubt
+            $ids = \array_slice(\array_values(\array_unique($ids)), 0, self::MAX_RULE_PRODUCTS);
         }
         if ($ids === []) {
             $coupon = DealService::create()->findCoupon((string)$row->coupon);
@@ -405,11 +407,17 @@ final class DealPageService
         }
         $isEn   = CountdownService::currentLanguage() === 'eng';
         $pick   = static fn(string $de, string $en): string => $isEn && \trim($en) !== '' ? \trim($en) : \trim($de);
-        $prices = [];
-        $order  = [];
+        $prices   = [];
+        $percents = [];
+        $order    = [];
         foreach ((new DealPricing($this->db))->rulesFor([(int)$row->id]) as $rule) {
             foreach ($rule['products'] as $id) {
                 $order[$id] = true;
+                if ($rule['type'] === 'setpct') {
+                    // Prozent-Rabatt: Preis erst mit dem geladenen Shop-Preis (unten)
+                    $percents[$id] = \max($percents[$id] ?? 0.0, $rule['price']);
+                    continue;
+                }
                 if ($rule['type'] === 'price' || !isset($prices[$id])) {
                     $prices[$id] = isset($prices[$id]) ? \min($prices[$id], $rule['price']) : $rule['price'];
                 }
@@ -418,6 +426,12 @@ final class DealPageService
         $items = [];
         foreach (DealService::create()->loadProducts(\array_slice(\array_keys($order), 0, DealService::MAX_PRODUCTS)) as $product) {
             $image   = $product->Bilder[0] ?? null;
+            $pid     = (int)$product->kArtikel;
+            $shop    = (float)($product->Preise->fVKBrutto ?? 0);
+            if (isset($percents[$pid]) && $shop > 0) {
+                $byPct        = \round($shop * (100 - $percents[$pid]) / 100, 2);
+                $prices[$pid] = isset($prices[$pid]) ? \min($prices[$pid], $byPct) : $byPct;
+            }
             $items[] = [
                 'id'      => (int)$product->kArtikel,
                 'name'    => DealService::plain($product->cName),

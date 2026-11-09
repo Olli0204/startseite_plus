@@ -196,6 +196,13 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   350 €“ – auf der Deal-Seite über der Liste und auf den Artikelseiten von Set-Artikel und Set-Partner unter der Kaufbox
   (Variante der Seite vorausgewählt). Cache-sicher: Platzhalter im HTML, Karten per IO (`startseitePlusNlDealSets`) nur für
   freigeschaltete Sitzungen, Warenkorb per `startseitePlusNlDealSetAdd` mit dem Sitzungs-Token aus `startseitePlusDealToken`.
+- **Set-Rabatt in % und Merkmal-Auswahl (seit 2.17.0):** Regelart „Set-Rabatt in %“ – die Artikel kosten so viel
+  Prozent weniger als ihr aktueller Shop-Preis (auch auf Sale-Preise), wenn ein Set-Partner im Warenkorb liegt. Artikel und
+  Set-Partner jeder Regel lassen sich zusätzlich über einen Merkmalwert wählen (z. B. alle Artikel mit „Warengruppe:
+  Bindung“, Set-Partner „Warengruppe: Snowboard“); neue Artikel mit dem Merkmal sind automatisch dabei. Set-Partner
+  werden über den ganzen Warenkorb verteilt: 1 Board + 2 verschiedene Bindungen → nur eine Bindung reduziert (gilt auch
+  für Set-Preise). Optionaler Hinweistext DE/EN je Regel (sonst „−20 % im Set mit Snowboard“). Kein Set-Konfigurator für
+  Prozent- und Merkmal-Regeln.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
   `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
 
@@ -209,6 +216,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.17.0         | 5.5.1 – 5.8.3 |
 | 2.16.2         | 5.5.1 – 5.8.3 |
 | 2.16.1         | 5.5.1 – 5.8.2 |
 | 2.2.0          | 5.5.1 – 5.8.0 |
@@ -229,6 +237,11 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.17.0
+- Newsletter-Deals: Regelart „Set-Rabatt in %“ (z. B. Bindungen −20 % zu jedem Snowboard), Artikel und Set-Partner auch
+  über einen Merkmalwert (Warengruppe), eigener Hinweistext DE/EN je Regel; Set-Partner werden über alle Positionen
+  verteilt (vorher konnte ein Board mehrere verschiedene Set-Artikel reduzieren). Migration `Migration20261109120000`
 
 ### 2.16.2
 - Kompatibilität mit JTL-Shop 5.8.3 geprüft: die Core-Änderungen 5.8.2 → 5.8.3 (Sicherheits- und Performance-Update) betreffen nur Backend-Benutzerverwaltung/2FA/Rechteprüfung, Backend-Benachrichtigungen, das Template-Änderungsprotokoll, den Wawi-Bildabgleich, die Zahlungsart-Prüfung im Checkout sowie die SQL von Preissortierung und Filtern (MariaDB 10.11); NOVA-Templates und Plugin-API sind unverändert. MaxShopVersion auf 5.8.3 angehoben

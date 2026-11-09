@@ -79,7 +79,7 @@
             parts.push([labels.price, single]);
         }
         if (sets.length) {
-            parts.push([labels.inSet, sets[0].price]);
+            parts.push([sets[0].short || labels.inSet, sets[0].price]);
         }
         note.appendChild(line(parts));
     };
@@ -134,8 +134,29 @@
             renderLine(wrapper, single, sets, isDetail);
             return;
         }
-        var text = single ? labels.badge + ' ' + single : labels.setBadge + ' ' + sets[0].price;
+        var text = single ? labels.badge + ' ' + single : (sets[0].badge || labels.setBadge + ' ' + sets[0].price);
         image.appendChild(el('span', 'sp-nld-ribbon', text));
+    };
+
+    /* Set-Rabatt in Prozent: Preis aus dem aktuellen Shop-Preis des Artikels (wie im Warenkorb, auf 2 Stellen) */
+    var percentSet = function (set, current) {
+        if (current <= 0) {
+            return null;
+        }
+        var value = Math.round(current * (100 - set.percent)) / 100;
+        var price;
+        try {
+            price = new Intl.NumberFormat(labels.locale || 'de-DE', {style: 'currency', currency: labels.currency || 'EUR'}).format(value);
+        } catch (e) {
+            price = value.toFixed(2).replace('.', ',') + ' €';
+        }
+        var copy = {};
+        Object.keys(set).forEach(function (key) {
+            copy[key] = set[key];
+        });
+        copy.value = value;
+        copy.price = price;
+        return copy;
     };
 
     var render = function (box) {
@@ -150,8 +171,10 @@
             return typeof value === 'number' && (current <= 0 || value < current - 0.005);
         };
         var single = entry.price && cheaper(entry.value) ? entry.price : '';
-        var sets = (entry.sets || []).filter(function (set) {
-            return cheaper(set.value);
+        var sets = (entry.sets || []).map(function (set) {
+            return typeof set.percent === 'number' ? percentSet(set, current) : set;
+        }).filter(function (set) {
+            return set && cheaper(set.value);
         });
         if (!single && !sets.length) {
             return;
