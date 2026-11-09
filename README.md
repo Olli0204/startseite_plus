@@ -218,6 +218,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.18.1         | 5.5.1 – 5.8.3 |
 | 2.18.0         | 5.5.1 – 5.8.3 |
 | 2.17.0         | 5.5.1 – 5.8.3 |
 | 2.16.2         | 5.5.1 – 5.8.3 |
@@ -240,6 +241,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.18.1
+- Newsletter-Deals: verständlicher Hinweis an der Warenkorb-Position beim Set-Rabatt, z. B. „Set-Rabatt: −20 % zusammen mit
+  Snowboard (regulär 199,96 €)“
 
 ### 2.18.0
 - Newsletter-Deals: Artikel und Set-Partner einer Regel auch über eine Kategorie wählbar (Migration

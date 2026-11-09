@@ -410,6 +410,23 @@ final class DealPricing
         return $partners !== '' ? \sprintf($labels['set'], $partners) : $labels['inSet'];
     }
 
+    /**
+     * Set-Partner einer Regel für Hinweise: Merkmalwert, Kategorie oder die Namen einzeln gewählter Partner.
+     *
+     * @param array<string, mixed> $rule
+     */
+    private function partnerText(array $rule): string
+    {
+        if (($rule['partnerFeature'] ?? 0) > 0) {
+            return $this->featureName($rule['partnerFeature']);
+        }
+        if (($rule['partnerCategory'] ?? 0) > 0) {
+            return $this->categoryName($rule['partnerCategory']);
+        }
+
+        return \implode(' / ', \array_values(\array_unique(\array_filter($this->partnerNames($rule['pickedPartners'] ?? $rule['partners'])))));
+    }
+
     public static function formatPercent(float $percent): string
     {
         return '−' . \rtrim(\rtrim(\number_format($percent, 2, ',', ''), '0'), ',') . ' %';
@@ -655,12 +672,21 @@ final class DealPricing
         $instead = self::formatGross($normal);
         $rule    = $result['setRule'] ?? null;
         if ($result['set'] !== null && $rule !== null && $rule['type'] === 'setpct') {
-            $text = $this->setLabel($rule);
-            if ($result['setUnits'] < $result['qty']) {
-                $text = self::formatQty($result['setUnits']) . '× ' . $text;
-            }
+            // wie die übrigen Zeilen der Position ("Größe: M"): Bezeichnung, dann Rabatt und Grund
+            $custom   = $isEn && $rule['labelEn'] !== '' ? $rule['labelEn'] : $rule['label'];
+            $partners = $this->partnerText($rule);
+            $percent  = self::formatPercent($rule['price']);
+            $units    = $result['setUnits'] < $result['qty']
+                ? \sprintf($isEn ? ' on %s of %s' : ' auf %s von %s Stück', self::formatQty($result['setUnits']), self::formatQty($result['qty']))
+                : '';
+            $text     = match (true) {
+                $custom !== ''   => $custom . ($units !== '' ? ' (' . \trim($units) . ')' : ''),
+                $partners !== '' => $percent . $units . ($isEn ? ' together with ' : ' zusammen mit ') . $partners,
+                default          => $percent . $units,
+            };
 
-            return $text . ($isEn ? ' (instead of ' : ' (statt ') . $instead . ')';
+            return ($isEn ? 'Set discount: ' : 'Set-Rabatt: ') . $text
+                . ($isEn ? ' (regular price ' : ' (regulär ') . $instead . ')';
         }
         if ($result['set'] !== null && $result['setUnits'] < $result['qty']) {
             return $isEn
