@@ -1,6 +1,6 @@
 {* Startseite Plus – eine Zeile "Deal-Preis" im Formular der Newsletter-Deals. Parameter: rule (type, products, partners,
-   productFeature, partnerFeature, price, label, labelEn), idx (Index oder "__i__" in der Vorlage für neue Zeilen),
-   features (Merkmale mit Werten für die Merkmal-Auswahl) *}
+   productFeature, partnerFeature, productCategory, partnerCategory, price, label, labelEn), idx (Index oder "__i__"
+   in der Vorlage für neue Zeilen), features (Merkmale mit Werten), categories (Kategorien mit Pfad) *}
 <div class="sp-nld-rule" data-type="{$rule.type|escape:'html'}">
     <div class="sp-nld-rule-head">
         <select class="custom-select sp-nld-rule-type" name="nld_rules[{$idx}][type]" aria-label="Art des Deal-Preises">
@@ -43,6 +43,15 @@
             {/foreach}
         </select>
     </div>
+    <div class="sp-nld-rule-feature">
+        <label class="sp-nld-rule-text" for="nld-rule-{$idx}-pc">… und/oder alle Artikel aus Kategorie:</label>
+        <select class="custom-select" id="nld-rule-{$idx}-pc" name="nld_rules[{$idx}][product_category]">
+            <option value="0">– keine Kategorie –</option>
+            {foreach $categories as $category}
+                <option value="{$category.id}"{if $rule.productCategory == $category.id} selected{/if}>{$category.name|escape:'html'} ({$category.count} Artikel)</option>
+            {/foreach}
+        </select>
+    </div>
     <div class="sp-nld-rule-partners">
         <p class="sp-nld-rule-text">Set-Partner (z. B. das Board zur Bindung):</p>
         <div class="sp-picker" data-sp-picker="products" data-max="50" data-parents-ok
@@ -60,6 +69,15 @@
                             <option value="{$value.id}"{if $rule.partnerFeature == $value.id} selected{/if}>{$feature.name|escape:'html'}: {$value.name|escape:'html'} ({$value.count} Artikel)</option>
                         {/foreach}
                     </optgroup>
+                {/foreach}
+            </select>
+        </div>
+        <div class="sp-nld-rule-feature">
+            <label class="sp-nld-rule-text" for="nld-rule-{$idx}-sc">… und/oder alle Artikel aus Kategorie als Set-Partner:</label>
+            <select class="custom-select" id="nld-rule-{$idx}-sc" name="nld_rules[{$idx}][partner_category]">
+                <option value="0">– keine Kategorie –</option>
+                {foreach $categories as $category}
+                    <option value="{$category.id}"{if $rule.partnerCategory == $category.id} selected{/if}>{$category.name|escape:'html'} ({$category.count} Artikel)</option>
                 {/foreach}
             </select>
         </div>

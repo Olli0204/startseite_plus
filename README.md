@@ -203,6 +203,8 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
   werden über den ganzen Warenkorb verteilt: 1 Board + 2 verschiedene Bindungen → nur eine Bindung reduziert (gilt auch
   für Set-Preise). Optionaler Hinweistext DE/EN je Regel (sonst „−20 % im Set mit Snowboard“). Kein Set-Konfigurator für
   Prozent- und Merkmal-Regeln.
+- **Kategorie-Auswahl (seit 2.18.0):** Artikel und Set-Partner jeder Regel zusätzlich über eine Kategorie (z. B. alle
+  Bindungen der Kategorie „Union Bundle Deal“); Liste mit Kategoriepfad und Anzahl direkt zugeordneter Artikel.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
   `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
 
@@ -216,6 +218,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.18.0         | 5.5.1 – 5.8.3 |
 | 2.17.0         | 5.5.1 – 5.8.3 |
 | 2.16.2         | 5.5.1 – 5.8.3 |
 | 2.16.1         | 5.5.1 – 5.8.2 |
@@ -237,6 +240,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.18.0
+- Newsletter-Deals: Artikel und Set-Partner einer Regel auch über eine Kategorie wählbar (Migration
+  `Migration20261109130000`)
 
 ### 2.17.0
 - Newsletter-Deals: Regelart „Set-Rabatt in %“ (z. B. Bindungen −20 % zu jedem Snowboard), Artikel und Set-Partner auch

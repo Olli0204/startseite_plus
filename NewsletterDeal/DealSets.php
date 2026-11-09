@@ -69,14 +69,15 @@ final class DealSets
     }
 
     /**
-     * Set-Konfigurator nur für Set-Preise mit einzeln gewählten Artikeln – nicht für Prozent-Rabatte und Merkmal-Regeln
+     * Set-Konfigurator nur für Set-Preise mit einzeln gewählten Artikeln – nicht für Prozent-Rabatte, Merkmal- und Kategorie-Regeln
      * (z. B. alle Snowboards), deren Auswahl für eine Karte zu groß wäre.
      *
      * @param array<string, mixed> $rule
      */
     public static function hasConfigurator(array $rule): bool
     {
-        return $rule['type'] === 'set' && ($rule['productFeature'] ?? 0) <= 0 && ($rule['partnerFeature'] ?? 0) <= 0;
+        return $rule['type'] === 'set' && ($rule['productFeature'] ?? 0) <= 0 && ($rule['partnerFeature'] ?? 0) <= 0
+            && ($rule['productCategory'] ?? 0) <= 0 && ($rule['partnerCategory'] ?? 0) <= 0;
     }
 
     /**

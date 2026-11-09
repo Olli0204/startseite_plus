@@ -55,6 +55,7 @@ final class DealPageAdmin
             ->assign('nldShopUrl', \rtrim(Shop::getURL(), '/') . '/')
             ->assign('nldPrefix', DealPageService::SLUG_PREFIX)
             ->assign('nldFeatures', $form === null ? [] : $this->featureOptions())
+            ->assign('nldCategories', $form === null ? [] : $this->categoryOptions())
             ->assign('nldRuleTpl', $this->plugin->getPaths()->getAdminPath() . 'templates/newsletter_deal_rule.tpl')
             ->assign('nldPickerCore', \rtrim($this->plugin->getPaths()->getBasePath(), '/') . '/portlet_input_types/picker-core.tpl')
             ->assign('nldNow', \date('d.m.Y H:i'));
@@ -242,6 +243,8 @@ final class DealPageAdmin
                 'price'          => $rule['price'] > 0 ? \number_format((float)$rule['price'], 2, '.', '') : '',
                 'productFeature' => (int)$rule['productFeature'],
                 'partnerFeature' => (int)$rule['partnerFeature'],
+                'productCategory' => (int)$rule['productCategory'],
+                'partnerCategory' => (int)$rule['partnerCategory'],
                 'label'          => (string)$rule['label'],
                 'labelEn'        => (string)$rule['labelEn'],
             ], \is_array($row->rules ?? null) ? $row->rules : $this->loadRules((int)$row->id)),
@@ -340,6 +343,8 @@ final class DealPageAdmin
                 'partners'        => (string)($input['partners'] ?? ''),
                 'product_feature' => (int)($input['product_feature'] ?? 0),
                 'partner_feature' => (int)($input['partner_feature'] ?? 0),
+                'product_category' => (int)($input['product_category'] ?? 0),
+                'partner_category' => (int)($input['partner_category'] ?? 0),
                 'price'           => \is_numeric($priceRaw) ? (float)$priceRaw : 0,
                 'label'           => \mb_substr(\trim((string)($input['label'] ?? '')), 0, 160),
                 'label_en'        => \mb_substr(\trim((string)($input['label_en'] ?? '')), 0, 160),
@@ -347,11 +352,13 @@ final class DealPageAdmin
             if (!DealPricing::isSetRule($rule)) {
                 $rule['partners']       = [];
                 $rule['partnerFeature'] = 0;
+                $rule['partnerCategory'] = 0;
                 $rule['label']          = '';
                 $rule['labelEn']        = '';
             }
             if ($rule['products'] === [] && $rule['partners'] === [] && $rule['productFeature'] === 0
-                && $rule['partnerFeature'] === 0 && $priceRaw === ''
+                && $rule['partnerFeature'] === 0 && $rule['productCategory'] === 0 && $rule['partnerCategory'] === 0
+                && $priceRaw === ''
             ) {
                 continue;
             }
@@ -414,6 +421,48 @@ final class DealPageAdmin
     }
 
     /**
+     * Kategorien für die Auswahl "Artikel aus Kategorie": Baum als flache Liste mit Pfad und Anzahl direkt zugeordneter
+     * Artikel.
+     *
+     * @return array<int, array{id: int, name: string, count: int}>
+     */
+    private function categoryOptions(): array
+    {
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT k.kKategorie, k.kOberKategorie, k.cName, COUNT(ka.kArtikel) AS cnt
+                    FROM tkategorie k
+                    LEFT JOIN tkategorieartikel ka ON ka.kKategorie = k.kKategorie
+                    GROUP BY k.kKategorie, k.kOberKategorie, k.cName, k.nSort
+                    ORDER BY k.nSort, k.cName'
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+        $children = [];
+        $byID     = [];
+        foreach ($rows as $row) {
+            $byID[(int)$row->kKategorie]               = $row;
+            $children[(int)$row->kOberKategorie][] = (int)$row->kKategorie;
+        }
+        $list = [];
+        $walk = static function (int $parent, string $path, int $depth) use (&$walk, &$list, $children, $byID): void {
+            foreach ($children[$parent] ?? [] as $id) {
+                if ($depth > 10) {
+                    return;
+                }
+                $name   = \trim(\html_entity_decode((string)$byID[$id]->cName, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'));
+                $full   = $path === '' ? $name : $path . ' › ' . $name;
+                $list[] = ['id' => $id, 'name' => $full, 'count' => (int)$byID[$id]->cnt];
+                $walk($id, $full, $depth + 1);
+            }
+        };
+        $walk(0, '', 0);
+
+        return $list;
+    }
+
+    /**
      * Alle gespeicherten Regeln einer Seite (auch unvollständige) für das Formular.
      *
      * @return array<int, array<string, mixed>>
@@ -453,6 +502,8 @@ final class DealPageAdmin
                 'partners'        => \implode(';', $rule['partners']),
                 'product_feature' => (int)$rule['productFeature'],
                 'partner_feature' => (int)$rule['partnerFeature'],
+                'product_category' => (int)$rule['productCategory'],
+                'partner_category' => (int)$rule['partnerCategory'],
                 'price'           => \number_format((float)$rule['price'], 2, '.', ''),
                 'label'           => (string)$rule['label'],
                 'label_en'        => (string)$rule['labelEn'],
