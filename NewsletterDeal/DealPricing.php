@@ -31,6 +31,8 @@ use stdClass;
 final class DealPricing
 {
     public const SESSION_KEY = 'startseitePlusNlDeals';
+    /** Anzeige im Warenkorb (basket/cart_items.tpl): kArtikel => regulärer Preis, Marke, Stückzahl */
+    public const CART_INFO_KEY = 'startseitePlusNlCartInfo';
     public const TABLE_RULES = 'startseite_plus_nl_deal_rule';
     public const TYPES       = ['price', 'set', 'setpct'];
     public const SET_TYPES   = ['set', 'setpct'];
@@ -541,6 +543,9 @@ final class DealPricing
     public function applyToCartItem(object $item): void
     {
         unset(self::$notes[\spl_object_id($item)]);
+        if (isset($item->kArtikel) && \is_array($_SESSION[self::CART_INFO_KEY] ?? null)) {
+            unset($_SESSION[self::CART_INFO_KEY][(int)$item->kArtikel]);
+        }
         $rules = $this->activeRules();
         if ($rules === [] || (int)($item->kKonfigitem ?? 0) > 0 || (int)($item->kArtikel ?? 0) <= 0) {
             return;
@@ -559,6 +564,37 @@ final class DealPricing
         $item->fPreis            = $net;
         $item->fPreisEinzelNetto = $net;
         self::$notes[\spl_object_id($item)] = $this->note($result, $normal);
+        $info = \is_array($_SESSION[self::CART_INFO_KEY] ?? null) ? $_SESSION[self::CART_INFO_KEY] : [];
+        $info[$productID]              = $this->cartInfo($result, $normal);
+        $_SESSION[self::CART_INFO_KEY] = $info;
+    }
+
+    /**
+     * Daten für die Anzeige unter dem Stückpreis im Warenkorb: regulärer Preis (durchgestrichen), Marke und – wenn nur
+     * ein Teil der Menge reduziert ist – die Stückzahl.
+     *
+     * @param array{unit: float, single: ?float, set: ?float, setUnits: float, qty: float, setRule: ?array} $result
+     * @return array{regular: string, badge: string, units: string, title: string}
+     */
+    private function cartInfo(array $result, float $normal): array
+    {
+        $isEn  = CountdownService::currentLanguage() === 'eng';
+        $rule  = $result['setRule'] ?? null;
+        $badge = match (true) {
+            $rule !== null && $rule['type'] === 'setpct' => ($isEn ? 'Set discount ' : 'Set-Rabatt ') . self::formatPercent($rule['price']),
+            $result['set'] !== null                       => $isEn ? 'Set price' : 'Set-Preis',
+            default                                       => self::labels()['price'],
+        };
+        $units = $result['set'] !== null && $result['setUnits'] < $result['qty']
+            ? \sprintf($isEn ? 'for %s of %s' : 'für %s von %s Stück', self::formatQty($result['setUnits']), self::formatQty($result['qty']))
+            : '';
+
+        return [
+            'regular' => self::formatGross($normal),
+            'badge'   => $badge,
+            'units'   => $units,
+            'title'   => $rule !== null ? $this->note($result, $normal) : '',
+        ];
     }
 
     /**

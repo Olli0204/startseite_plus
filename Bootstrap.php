@@ -100,6 +100,7 @@ class Bootstrap extends Bootstrapper
         });
         $dispatcher->hookInto(\HOOK_FILTER_PAGE, function (): void {
             $this->assignNewsletterDeal();
+            $this->assignCategoryBanner();
         });
         $dispatcher->hookInto(\HOOK_FILTER_ENDE, static function (): void {
             $page = DealPageRoute::current();
@@ -177,6 +178,33 @@ class Bootstrap extends Bootstrapper
         if ($view['expired']) {
             Shop::Container()->getAlertService()->removeAlertByKey('noFilterResults');
         }
+    }
+
+    /**
+     * Aktions-Banner oben auf der Kategorieseite, die bei einer Newsletter-Deal-Aktion als "Banner auf Kategorieseite"
+     * gewählt ist (z. B. "Union Bundle Deal").
+     */
+    public function assignCategoryBanner(): void
+    {
+        if (DealPageRoute::current() !== null) {
+            return;
+        }
+        try {
+            $filter = Shop::getProductFilter();
+            if (!$filter->hasCategory()) {
+                return;
+            }
+            $banner = DealPageService::create()->categoryBanner((int)$filter->getCategory()->getValue());
+        } catch (\Throwable) {
+            return;
+        }
+        if ($banner === null) {
+            return;
+        }
+        Shop::Smarty()->assign('spCatBanner', $banner)
+            ->assign('spCommonUrl', $this->getCommonUrl())
+            ->assign('spCommonPath', $this->getCommonPath())
+            ->assign('spVersion', $this->getPlugin()->getMeta()->getVersion());
     }
 
     /**

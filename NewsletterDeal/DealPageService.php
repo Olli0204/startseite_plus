@@ -385,6 +385,46 @@ final class DealPageService
         ];
     }
 
+    /* ------------------------------------------------- Kategorie-Banner */
+
+    /**
+     * Banner für eine Kategorieseite: erste laufende, öffentliche Aktion mit dieser Kategorie (banner_category). Hängt nur
+     * vom Zustand der Aktion ab, nicht von der Sitzung (LiteSpeed-Seitencache; Zustandswechsel leert DealCache).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function categoryBanner(int $categoryID): ?array
+    {
+        if ($categoryID <= 0) {
+            return null;
+        }
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT * FROM ' . self::TABLE . ' WHERE active = 1 AND banner_category = :id ORDER BY id DESC',
+                ['id' => $categoryID]
+            );
+        } catch (\Throwable) {
+            return null;   // Spalte fehlt (Plugin noch nicht aktualisiert)
+        }
+        foreach ($rows as $row) {
+            if (!self::isPublic($row)) {
+                continue;
+            }
+            $view = $this->frontendView($row, false);
+
+            return [
+                'id'        => $view['id'],
+                'title'     => $view['title'],
+                'text'      => $view['text'],
+                'kicker'    => CountdownService::currentLanguage() === 'eng' ? 'Deal' : 'Aktion',
+                'validLabel' => $view['validLabel'],
+                'countdown' => $view['countdown'],
+            ];
+        }
+
+        return null;
+    }
+
     /* --------------------------------------------------------- Hero-Slide */
 
     /**

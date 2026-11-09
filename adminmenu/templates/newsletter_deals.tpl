@@ -329,6 +329,20 @@
                     </div>
                 </div>
                 <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="nld_banner_category">Banner auf Kategorieseite (optional):</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <select class="custom-select" id="nld_banner_category" name="nld_banner_category">
+                            <option value="0">– kein Banner –</option>
+                            {foreach $nldCategories as $category}
+                                <option value="{$category.id}"{if $nldForm.banner_category == $category.id} selected{/if}>{$category.name|escape:'html'} ({$category.count} Artikel)</option>
+                            {/foreach}
+                        </select>
+                        <small class="text-muted">Zeigt oben auf dieser Kategorieseite einen schmalen Aktions-Streifen mit Überschrift,
+                            Text und Countdown der Aktion – nur solange die Aktion läuft und für alle Kunden gilt („Für alle Kunden ab“).
+                            So lässt sich eine bestehende Aktions-Kategorie (z. B. „Union Bundle Deal“) weiterverwenden.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
                     <label class="col col-sm-4 col-form-label text-sm-right" for="nld_code">Deal-Code (optional):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="nld_code" name="nld_code" maxlength="50"

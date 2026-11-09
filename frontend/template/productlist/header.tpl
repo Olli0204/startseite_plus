@@ -95,6 +95,28 @@
             {/if}
         {/if}
     {else}
+        {if !empty($spCatBanner)}
+            {* Aktions-Banner auf der bei der Aktion gewählten Kategorieseite *}
+            {$spCb = $spCatBanner}
+            <link rel="stylesheet" href="{$spCommonUrl}common.css?v={$spVersion|escape:'html'}">
+            <link rel="stylesheet" href="{$spCommonUrl}deal.css?v={$spVersion|escape:'html'}">
+            <section class="sp-deal sp-deal--strip sp-deal--r-md sp-bg-tint sp-cat-banner">
+                <div class="sp-deal__icon" aria-hidden="true"><i class="fas fa-percent"></i></div>
+                <div class="sp-deal__body">
+                    <span class="sp-kicker sp-deal__kicker">{$spCb.kicker|escape:'html'}</span>
+                    <div class="sp-deal__title">{$spCb.title|escape:'html'}</div>
+                    {if $spCb.text !== '' || $spCb.validLabel !== ''}
+                        <div class="sp-deal__sub">
+                            {$spCb.text|escape:'html'}{if $spCb.text !== '' && $spCb.validLabel !== ''} · {/if}{$spCb.validLabel|escape:'html'}
+                        </div>
+                    {/if}
+                    {if $spCb.countdown !== null && !$spCb.countdown.expired}
+                        {include file=$spCommonPath|cat:'countdown.tpl' cd=$spCb.countdown dark=true}
+                        <script src="{$spCommonUrl}countdown.js?v={$spVersion|escape:'html'}" defer></script>
+                    {/if}
+                </div>
+            </section>
+        {/if}
         {$smarty.block.parent}
     {/if}
 {/block}
