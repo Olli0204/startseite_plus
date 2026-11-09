@@ -223,6 +223,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.19.2         | 5.5.1 – 5.8.3 |
 | 2.19.1         | 5.5.1 – 5.8.3 |
 | 2.19.0         | 5.5.1 – 5.8.3 |
 | 2.18.1         | 5.5.1 – 5.8.3 |
@@ -248,6 +249,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.19.2
+- Kategorie-Banner erscheint jetzt wirklich auf Kategorieseiten (unter Titel/Beschreibung im Block
+  `productlist-header-description`); NOVA rendert den bisher genutzten Block `productlist-header-heading` dort nicht
 
 ### 2.19.1
 - Warenkorb: Rabatt-Anzeige unter dem Stückpreis passt in die schmale Spalte neben der Bestellübersicht (Marke nur
