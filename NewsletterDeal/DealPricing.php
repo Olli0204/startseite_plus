@@ -39,6 +39,9 @@ final class DealPricing
     /** @var array<int, int[]> Artikel-IDs je Merkmalwert (pro Request) */
     private static array $featureArticles = [];
 
+    /** @var array<int, int[]> Artikel-IDs je Kategorie (pro Request) */
+    private static array $categoryArticles = [];
+
     /** @var array<int, array<string, mixed>>|null Regeln der freigeschalteten, laufenden Deals (pro Request) */
     private static ?array $active = null;
 
@@ -208,6 +211,8 @@ final class DealPricing
             'partners'       => DealPageService::parseIds((string)($row->partners ?? '')),
             'productFeature' => \max(0, (int)($row->product_feature ?? 0)),
             'partnerFeature' => \max(0, (int)($row->partner_feature ?? 0)),
+            'productCategory' => \max(0, (int)($row->product_category ?? 0)),
+            'partnerCategory' => \max(0, (int)($row->partner_category ?? 0)),
             'price'          => \round((float)($row->price ?? 0), 2),
             'label'          => \trim((string)($row->label ?? '')),
             'labelEn'        => \trim((string)($row->label_en ?? '')),
@@ -227,14 +232,17 @@ final class DealPricing
      */
     public static function isUsable(array $rule): bool
     {
-        if (($rule['products'] === [] && ($rule['productFeature'] ?? 0) <= 0) || $rule['price'] <= 0) {
+        if (($rule['products'] === [] && ($rule['productFeature'] ?? 0) <= 0 && ($rule['productCategory'] ?? 0) <= 0)
+            || $rule['price'] <= 0
+        ) {
             return false;
         }
         if ($rule['type'] === 'setpct' && $rule['price'] >= 100) {
             return false;
         }
 
-        return !self::isSetRule($rule) || $rule['partners'] !== [] || ($rule['partnerFeature'] ?? 0) > 0;
+        return !self::isSetRule($rule) || $rule['partners'] !== [] || ($rule['partnerFeature'] ?? 0) > 0
+            || ($rule['partnerCategory'] ?? 0) > 0;
     }
 
     /**
@@ -259,6 +267,11 @@ final class DealPricing
         foreach (['products' => 'productFeature', 'partners' => 'partnerFeature'] as $list => $feature) {
             if (($rule[$feature] ?? 0) > 0) {
                 $rule[$list] = \array_values(\array_unique(\array_merge($rule[$list], $this->featureArticles($rule[$feature]))));
+            }
+        }
+        foreach (['products' => 'productCategory', 'partners' => 'partnerCategory'] as $list => $category) {
+            if (($rule[$category] ?? 0) > 0) {
+                $rule[$list] = \array_values(\array_unique(\array_merge($rule[$list], $this->categoryArticles($rule[$category]))));
             }
         }
 
@@ -291,6 +304,59 @@ final class DealPricing
         }
 
         return self::$featureArticles[$valueID];
+    }
+
+    /**
+     * Alle Artikel einer Kategorie (direkt zugeordnet; Varianten über ihren Vaterartikel, siehe matches()).
+     *
+     * @return int[]
+     */
+    public function categoryArticles(int $categoryID): array
+    {
+        if ($categoryID <= 0) {
+            return [];
+        }
+        if (!isset(self::$categoryArticles[$categoryID])) {
+            try {
+                self::$categoryArticles[$categoryID] = \array_map(
+                    static fn(stdClass $row): int => (int)$row->kArtikel,
+                    $this->db->getObjects(
+                        'SELECT DISTINCT kArtikel FROM tkategorieartikel WHERE kKategorie = :id',
+                        ['id' => $categoryID]
+                    )
+                );
+            } catch (\Throwable $e) {
+                $this->logError($e);
+                self::$categoryArticles[$categoryID] = [];
+            }
+        }
+
+        return self::$categoryArticles[$categoryID];
+    }
+
+    /**
+     * Name einer Kategorie in der aktuellen Sprache (Fallback: Standardname).
+     */
+    public function categoryName(int $categoryID): string
+    {
+        if ($categoryID <= 0) {
+            return '';
+        }
+        try {
+            $row = $this->db->getSingleObject(
+                'SELECT k.cName, ks.cName AS localized FROM tkategorie k
+                    LEFT JOIN tkategoriesprache ks ON ks.kKategorie = k.kKategorie AND ks.kSprache = :lang
+                    WHERE k.kKategorie = :id',
+                ['id' => $categoryID, 'lang' => Shop::getLanguageID()]
+            );
+        } catch (\Throwable) {
+            return '';
+        }
+        if ($row === null) {
+            return '';
+        }
+
+        return self::plain(\trim((string)($row->localized ?? '')) !== '' ? $row->localized : $row->cName);
     }
 
     /**
@@ -329,6 +395,8 @@ final class DealPricing
         }
         if (($rule['partnerFeature'] ?? 0) > 0) {
             $partners = $this->featureName($rule['partnerFeature']);
+        } elseif (($rule['partnerCategory'] ?? 0) > 0) {
+            $partners = $this->categoryName($rule['partnerCategory']);
         }
         if ($rule['type'] === 'setpct') {
             $percent = self::formatPercent($rule['price']);

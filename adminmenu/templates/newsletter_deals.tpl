@@ -290,11 +290,11 @@
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <div id="sp-nld-rules">
                             {foreach $nldForm.rules as $rule}
-                                {include file=$nldRuleTpl rule=$rule idx=$rule@index features=$nldFeatures}
+                                {include file=$nldRuleTpl rule=$rule idx=$rule@index features=$nldFeatures categories=$nldCategories}
                             {/foreach}
                         </div>
                         <template id="sp-nld-rule-template">
-                            {include file=$nldRuleTpl rule=['type' => 'price', 'products' => '', 'partners' => '', 'price' => '', 'productFeature' => 0, 'partnerFeature' => 0, 'label' => '', 'labelEn' => ''] idx='__i__' features=$nldFeatures}
+                            {include file=$nldRuleTpl rule=['type' => 'price', 'products' => '', 'partners' => '', 'price' => '', 'productFeature' => 0, 'partnerFeature' => 0, 'productCategory' => 0, 'partnerCategory' => 0, 'label' => '', 'labelEn' => ''] idx='__i__' features=$nldFeatures categories=$nldCategories}
                         </template>
                         <div class="sp-nld-rule-add">
                             <button type="button" class="btn btn-outline-primary" data-sp-nld-add="price"><i class="fal fa-plus"></i> Festpreis</button>
@@ -304,7 +304,7 @@
                         <small class="text-muted">Bruttopreise je Stück. Sie gelten im Warenkorb für Kunden, die den Link besucht oder
                             den Deal-Code eingegeben haben, und nur, solange sie günstiger als der Shop-Preis sind. Beispiel:
                             Festpreis 250 € für die Boards, Festpreis 120 € für die Upshot und Set-Preis 100 € für die Upshot mit
-                            dem Odyssey als Set-Partner. Bundle-Aktion: Set-Rabatt 20 % für alle Artikel mit „Warengruppe: Bindung“ und
+                            dem Odyssey als Set-Partner. Bundle-Aktion: Set-Rabatt 20 % für alle Artikel einer Kategorie (z. B. „Union Bundle Deal“) oder mit „Warengruppe: Bindung“ und
                             „Warengruppe: Snowboard“ als Set-Partner – mit „Für alle Kunden ab“ gilt sie ohne Link und Code.
                             Ohne eigene Artikelauswahl zeigt die Seite alle Artikel der Deal-Preise.</small>
                     </div>
