@@ -45,7 +45,7 @@
             {if $deal.text !== ''}<p class="sp-deal__text">{$deal.text|escape:'html'}</p>{/if}
             {if $deal.showPrices}
                 <div class="sp-deal__price">
-                    <s class="sp-deal__sum">{$deal.sum|escape:'html'}</s>
+                    {if $deal.sum !== ''}<s class="sp-deal__sum">{$deal.sum|escape:'html'}</s>{/if}
                     <span class="sp-deal__total">{$deal.total|escape:'html'}</span>
                     <span class="sp-deal__with">{$deal.withCode|escape:'html'}</span>
                     {if $deal.savingLabel !== ''}<span class="sp-deal__saving">{$deal.savingLabel|escape:'html'}</span>{/if}

@@ -93,11 +93,18 @@ class sliderPlus extends Portlet
             $slide['dealView'] = null;
             $isDeal            = $slide['type'] === 'deal' || ($slide['type'] === '' && $slide['deal'] !== '');
             if ($slide['type'] === 'nldeal') {
+                $deals ??= DealService::create();
+                $link    = $deals->categoryUrl((int)$slide['deal-category']);
+                if ($link === '') {
+                    $link = self::safeUrl($slide['deal-link']);
+                }
                 $view = DealPageService::create()->slideView((int)$slide['nl-deal'], [
                     'kicker'    => $slide['kicker'],
                     'title'     => $slide['title'],
                     'text'      => $slide['desc'],
                     'linkLabel' => $slide['deal-button'],
+                    'link'      => $link,
+                    'products'  => $slide['products'],
                 ], $isPreview);
                 if ($view === null || (!$view['show'] && !$isPreview)) {
                     continue;
@@ -291,7 +298,7 @@ class sliderPlus extends Portlet
                         'label'  => '',
                         'type'   => 'hint',
                         'width'  => 100,
-                        'help'   => \__('Die Slide zeigt bis zu 4 Artikel der Deal-Preise mit Aktionspreis und verlinkt auf die Deal-Seite (deutscher bzw. englischer Link). Im Shop erscheint sie erst ab „Für alle Kunden ab“ (Plugin-Tab „Newsletter-Deals“) und verschwindet mit dem Ende der Aktion. Überschrift, Kicker und Text sind optional – leer kommen sie aus der Deal-Seite.'),
+                        'help'   => \__('Die Slide zeigt bis zu 4 Artikel der Aktion (ohne doppelte Modelle, oder die unten gewählten) mit Aktionspreis, bei Prozent-Aktionen groß den Rabatt („−20 % im Set mit Snowboard“). Der Button führt auf die gewählte Kategorie bzw. den Link, sonst auf die Banner-Kategorie der Aktion, sonst auf die Deal-Seite. Im Shop erscheint sie erst ab „Für alle Kunden ab“ (Plugin-Tab „Newsletter-Deals“) und verschwindet mit dem Ende der Aktion. Überschrift, Kicker und Text sind optional – leer kommen sie aus der Aktion.'),
                         'showIf' => self::SHOW_NLDEAL,
                     ],
                     [
@@ -307,8 +314,8 @@ class sliderPlus extends Portlet
                         'type'      => 'products',
                         'width'     => 100,
                         'max'       => DealService::MAX_PRODUCTS,
-                        'emptyText' => \__('Keine Artikel ausgewählt – es werden die im Kupon hinterlegten Artikel angezeigt.'),
-                        'showIf'    => self::SHOW_DEAL,
+                        'emptyText' => \__('Keine Artikel ausgewählt – es werden die Artikel des Kupons bzw. der Aktion angezeigt.'),
+                        'showIf'    => self::SHOW_ANY_DEAL,
                     ],
                     ['name' => 'title', 'label' => \__('Überschrift'), 'width' => 60],
                     ['name' => 'kicker', 'label' => \__('Kleine Zeile über der Überschrift'), 'width' => 40],
@@ -326,7 +333,7 @@ class sliderPlus extends Portlet
                         'label'  => \__('Button verlinkt auf Kategorie'),
                         'type'   => 'category',
                         'width'  => 100,
-                        'showIf' => self::SHOW_DEAL,
+                        'showIf' => self::SHOW_ANY_DEAL,
                     ],
                     [
                         'name'        => 'deal-button',
@@ -340,8 +347,8 @@ class sliderPlus extends Portlet
                         'label'       => \__('Oder eigener Link (URL)'),
                         'width'       => 60,
                         'placeholder' => \__('Oder eigener Link (URL), falls keine Kategorie gewählt ist'),
-                        'help'        => \__('Ohne Kategorie und Link zeigt die Karte stattdessen „In den Warenkorb“ mit automatischer Code-Einlösung.'),
-                        'showIf'      => self::SHOW_DEAL,
+                        'help'        => \__('Deal-Slide: ohne Kategorie und Link zeigt die Karte „In den Warenkorb“ mit automatischer Code-Einlösung. Newsletter-Aktion: ohne Angabe Banner-Kategorie der Aktion bzw. Deal-Seite.'),
+                        'showIf'      => self::SHOW_ANY_DEAL,
                     ],
                     ['name' => 'button', 'label' => \__('Button-Text'), 'width' => 40, 'showIf' => self::SHOW_IMAGE],
                     [

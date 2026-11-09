@@ -223,6 +223,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.20.0         | 5.5.1 – 5.8.3 |
 | 2.19.3         | 5.5.1 – 5.8.3 |
 | 2.19.2         | 5.5.1 – 5.8.3 |
 | 2.19.1         | 5.5.1 – 5.8.3 |
@@ -250,6 +251,12 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.20.0
+- Hero-Slide „Newsletter-Aktion“: Button auf eine wählbare Kategorie bzw. eigenen Link (ohne Angabe: Banner-Kategorie
+  der Aktion, sonst Deal-Seite), Artikel optional selbst wählen; automatisch gewählte Artikel ohne Größen-Kinder und
+  doppelte Modelle, gemeinsames Namensende entfällt („Union Source FC“ statt „Union Source FC Snowboardbindung 2027“);
+  Prozent-Aktionen zeigen den Rabatt groß („−20 % im Set mit Snowboard“) und den Aktionspreis an den Kacheln
 
 ### 2.19.3
 - Warenkorb: bestehende Sitzungen zeigten noch die breite Marke aus 2.19.0 (Text liegt in der Sitzung und entsteht erst
