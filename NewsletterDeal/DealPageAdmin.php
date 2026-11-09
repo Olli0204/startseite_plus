@@ -138,6 +138,7 @@ final class DealPageAdmin
         $row->products = \implode(';', DealPageService::parseIds((string)($_POST['nld_products'] ?? '')));
         $row->code     = DealPricing::normalizeCode((string)($_POST['nld_code'] ?? ''));
         $row->display  = DealPricing::displayMode((string)($_POST['nld_display'] ?? ''));
+        $row->banner_category = \max(0, (int)($_POST['nld_banner_category'] ?? 0));
         $row->active   = isset($_POST['nld_active']) ? 1 : 0;
 
         $errors     = [];
@@ -203,6 +204,7 @@ final class DealPageAdmin
             'coupon'      => '',
             'code'        => '',
             'display'     => 'line',
+            'banner_category' => 0,
             'products'    => '',
             'rules'       => [],
             'valid_from'  => null,
@@ -235,6 +237,7 @@ final class DealPageAdmin
             'coupon'      => (string)$row->coupon,
             'code'        => (string)($row->code ?? ''),
             'display'     => DealPricing::displayMode((string)($row->display ?? '')),
+            'banner_category' => (int)($row->banner_category ?? 0),
             'products'    => (string)($row->products ?? ''),
             'rules'       => \array_map(static fn(array $rule): array => [
                 'type'           => $rule['type'],
