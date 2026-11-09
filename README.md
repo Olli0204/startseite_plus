@@ -208,7 +208,7 @@ Versteckte Aktionsseiten für Newsletter-Abonnenten, verwaltet im Plugin-Tab **�
 - **Kategorie-Banner und Warenkorb-Anzeige (seit 2.19.0):** je Aktion optional „Banner auf Kategorieseite“ – oben auf
   der gewählten Kategorie (z. B. „Union Bundle Deal“) ein schmaler Aktions-Streifen mit Überschrift, Text, Gültigkeit und
   Countdown, nur solange die Aktion läuft und für alle Kunden gilt. Im Warenkorb steht ein Deal-/Set-Rabatt jetzt unter
-  dem Stückpreis (regulärer Preis durchgestrichen + Marke „Set-Rabatt −20 %“, Erklärung als Tooltip) statt als Zeile
+  dem Stückpreis (regulärer Preis durchgestrichen, Marke „−20 %“, darunter klein „Set-Rabatt“; Erklärung als Tooltip) statt als Zeile
   zwischen den Artikeldaten (Block-Override `basket/cart_items.tpl`); im Checkout bleibt die Zeile.
 - Zeitraum optional: vor dem Start und bei deaktivierten Seiten sehen Kunden eine 404-Seite, Admins (Link aus dem Tab,
   `?fromAdmin=yes`) eine Vorschau mit Hinweisen; nach dem Ende zeigt die Seite „Aktion beendet“ statt der Artikel.
@@ -223,6 +223,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.19.1         | 5.5.1 – 5.8.3 |
 | 2.19.0         | 5.5.1 – 5.8.3 |
 | 2.18.1         | 5.5.1 – 5.8.3 |
 | 2.18.0         | 5.5.1 – 5.8.3 |
@@ -247,6 +248,10 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.19.1
+- Warenkorb: Rabatt-Anzeige unter dem Stückpreis passt in die schmale Spalte neben der Bestellübersicht (Marke nur
+  „−20 %“, Text darunter umbrechend) – vorher lief die Marke über die Mengenauswahl
 
 ### 2.19.0
 - Newsletter-Deals: Aktions-Banner oben auf einer wählbaren Kategorieseite (Migration `Migration20261109140000`)

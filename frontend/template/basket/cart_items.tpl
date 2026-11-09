@@ -10,11 +10,13 @@
         {if empty($spCartSetCss)}
             {assign var=spCartSetCss value=true scope='global'}
             <style>
-                .sp-cart-set { margin-top: .3rem; font-size: .875rem; line-height: 1.5; }
-                .sp-cart-set__regular { margin-right: .4rem; color: #707070; text-decoration: line-through; white-space: nowrap; }
-                .sp-cart-set__badge { display: inline-block; padding: .05rem .45rem; border-radius: 3px; background: var(--primary, #FFA54F);
-                    color: #2b2b2b; font-weight: 600; white-space: nowrap; }
-                .sp-cart-set__units { display: block; color: #707070; }
+                .sp-cart-set { display: flex; flex-direction: column; align-items: flex-start; gap: .15rem; max-width: 100%;
+                    margin-top: .25rem; font-size: .8125rem; line-height: 1.35; white-space: normal; }
+                .sp-cart-set__regular { color: #707070; text-decoration: line-through; }
+                .sp-cart-set__badge { max-width: 100%; padding: .1rem .4rem; border-radius: 3px; background: var(--primary, #FFA54F);
+                    color: #2b2b2b; font-weight: 600; overflow-wrap: anywhere; }
+                .sp-cart-set__units { color: #707070; }
+                .sp-cart-set > * { max-width: 100%; }
             </style>
         {/if}
         {col cols=$cols md=$mdRight xl=2 class="cart-items-single-price"}
@@ -22,7 +24,8 @@
                 {lang key="pricePerUnit" section="productDetails"}:
             </strong>{$oPosition->cEinzelpreisLocalized[$NettoPreise][$smarty.session.cWaehrungName]}
             <div class="sp-cart-set"{if $spCartSet.title !== ''} title="{$spCartSet.title|escape:'html'}"{/if}>
-                <span class="sp-cart-set__regular">{$spCartSet.regular|escape:'html'}</span><span class="sp-cart-set__badge">{$spCartSet.badge|escape:'html'}</span>
+                <span class="sp-cart-set__regular">{$spCartSet.regular|escape:'html'}</span>
+                <span class="sp-cart-set__badge">{$spCartSet.badge|escape:'html'}</span>
                 {if $spCartSet.units !== ''}<span class="sp-cart-set__units">{$spCartSet.units|escape:'html'}</span>{/if}
             </div>
         {/col}
