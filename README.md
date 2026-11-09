@@ -223,6 +223,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.19.3         | 5.5.1 – 5.8.3 |
 | 2.19.2         | 5.5.1 – 5.8.3 |
 | 2.19.1         | 5.5.1 – 5.8.3 |
 | 2.19.0         | 5.5.1 – 5.8.3 |
@@ -249,6 +250,11 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.19.3
+- Warenkorb: bestehende Sitzungen zeigten noch die breite Marke aus 2.19.0 (Text liegt in der Sitzung und entsteht erst
+  bei der Neuberechnung) – Sitzungsschlüssel versioniert (`startseitePlusNlCartInfo2`), alte Daten werden ignoriert;
+  Abstand zur Zeile „Artikelnummer“
 
 ### 2.19.2
 - Kategorie-Banner erscheint jetzt wirklich auf Kategorieseiten (unter Titel/Beschreibung im Block

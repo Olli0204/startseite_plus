@@ -31,8 +31,12 @@ use stdClass;
 final class DealPricing
 {
     public const SESSION_KEY = 'startseitePlusNlDeals';
-    /** Anzeige im Warenkorb (basket/cart_items.tpl): kArtikel => regulärer Preis, Marke, Stückzahl */
-    public const CART_INFO_KEY = 'startseitePlusNlCartInfo';
+    /**
+     * Anzeige im Warenkorb (basket/cart_items.tpl): kArtikel => regulärer Preis, Marke, Stückzahl. Versioniert: die Texte
+     * entstehen bei der Neuberechnung des Warenkorbs, ein neues Format darf alte Sitzungsdaten nicht anzeigen.
+     */
+    public const CART_INFO_KEY = 'startseitePlusNlCartInfo2';
+    private const CART_INFO_OLD_KEYS = ['startseitePlusNlCartInfo'];
     public const TABLE_RULES = 'startseite_plus_nl_deal_rule';
     public const TYPES       = ['price', 'set', 'setpct'];
     public const SET_TYPES   = ['set', 'setpct'];
@@ -543,6 +547,9 @@ final class DealPricing
     public function applyToCartItem(object $item): void
     {
         unset(self::$notes[\spl_object_id($item)]);
+        foreach (self::CART_INFO_OLD_KEYS as $oldKey) {
+            unset($_SESSION[$oldKey]);
+        }
         if (isset($item->kArtikel) && \is_array($_SESSION[self::CART_INFO_KEY] ?? null)) {
             unset($_SESSION[self::CART_INFO_KEY][(int)$item->kArtikel]);
         }
