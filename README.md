@@ -223,6 +223,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.20.2         | 5.5.1 – 5.8.4 |
 | 2.20.1         | 5.5.1 – 5.8.3 |
 | 2.20.0         | 5.5.1 – 5.8.3 |
 | 2.19.3         | 5.5.1 – 5.8.3 |
@@ -252,6 +253,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.20.2
+- Kompatibilität mit JTL-Shop 5.8.4 geprüft: die Core-Änderungen 5.8.3 → 5.8.4 (Sicherheitsupdate) betreffen nur Lieferadressen-Prüfung im Checkout, OPC-Vorschau-Token, IP-Ermittlung hinter Proxys, CSRF-Schutz im Checkout, Rate-Limits für Wawi-Login und Backend, Backend-Benutzer- und Einstellungsverwaltung sowie Bibliotheks-Updates (Guzzle 7.15, Smarty 5.8); keine vom Plugin genutzte API und keine überschriebenen NOVA-Templates sind betroffen. MaxShopVersion auf 5.8.4 angehoben
 
 ### 2.20.1
 - Aktions-Slide: Kachelnamen kürzen jetzt die längste gemeinsame Wortfolge (auch mitten im Namen, z. B. „Snowboard
