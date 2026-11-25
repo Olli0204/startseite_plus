@@ -106,6 +106,16 @@
 .sp-btn.sp-btn--pill:hover,
 .sp-btn.sp-btn--pill:focus { background: var(--sp-accent, var(--primary, #FFA54F)); color: #fff; }
 
+/* Pill-Button in Akzentfarbe (seit 2.21.1): Form wie .sp-btn--pill, Farbe wie .sp-btn--primary */
+.sp-btn.sp-btn--pill-accent {
+    border-radius: 2rem;
+    border-color: transparent;
+    background: var(--sp-accent, var(--primary, #FFA54F));
+    color: #fff;
+}
+.sp-btn.sp-btn--pill-accent:hover,
+.sp-btn.sp-btn--pill-accent:focus { color: #fff; filter: brightness(.93); }
+
 .sp-btn.sp-btn--link {
     padding-left: 0;
     padding-right: 0;

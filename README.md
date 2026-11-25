@@ -224,6 +224,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.21.1         | 5.5.1 – 5.8.5 |
 | 2.21.0         | 5.5.1 – 5.8.5 |
 | 2.20.3         | 5.5.1 – 5.8.5 |
 | 2.20.2         | 5.5.1 – 5.8.4 |
@@ -256,6 +257,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.21.1
+- Neuer Button-Stil „Pill-Button in Akzentfarbe“ (abgerundet wie der graue Pill-Button, Farbe wie „Akzentfarbe“) für alle Portlets mit Button-Stil-Auswahl
 
 ### 2.21.0
 - Hero-Slider: Feld „Button-Stil dieser Slide“ je Bild-Slide („Wie Slider“ oder einer der Button-Stile), damit z. B. nur die Black-Week-Slide einen Button in Akzentfarbe bekommt
