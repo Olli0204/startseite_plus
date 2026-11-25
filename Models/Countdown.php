@@ -17,6 +17,9 @@ use JTL\Plugin\Admin\InputType;
  * @property string $label
  * @property string $label_en
  * @property string $style
+ * @property string $design
+ * @property string $kicker
+ * @property string $kicker_en
  * @property string $expired_mode
  * @property string $expired_text
  * @property string $expired_text_en
@@ -98,6 +101,9 @@ final class Countdown extends DataModel
             'label'           => $hidden('label'),
             'label_en'        => $hidden('label_en'),
             'style'           => $style,
+            'design'          => $hidden('design', 'varchar', 'light'),
+            'kicker'          => $hidden('kicker'),
+            'kicker_en'       => $hidden('kicker_en'),
             'expired_mode'    => $mode,
             'expired_text'    => $hidden('expired_text'),
             'expired_text_en' => $hidden('expired_text_en'),

@@ -46,7 +46,7 @@ class ModelBackendController extends GenericModelController
         }
         $post['until'] = \date('Y-m-d H:i:s', $ts);
 
-        foreach (['style' => CountdownService::STYLES, 'expired_mode' => CountdownService::MODES, 'product_page' => CountdownService::PRODUCT_PAGE] as $field => $allowed) {
+        foreach (['style' => CountdownService::STYLES, 'design' => CountdownService::DESIGNS, 'expired_mode' => CountdownService::MODES, 'product_page' => CountdownService::PRODUCT_PAGE] as $field => $allowed) {
             if (!\in_array($post[$field] ?? '', $allowed, true)) {
                 $post[$field] = $allowed[0];
             }
@@ -54,6 +54,9 @@ class ModelBackendController extends GenericModelController
         foreach (['label', 'label_en', 'expired_text', 'expired_text_en'] as $field) {
             // filterXSS entfernt Anführungszeichen; Rohwert übernehmen, Ausgabe wird escaped
             $post[$field] = \mb_substr(\trim((string)($_POST[$field] ?? '')), 0, 255);
+        }
+        foreach (['kicker', 'kicker_en'] as $field) {
+            $post[$field] = \mb_substr(\trim((string)($_POST[$field] ?? '')), 0, 100);
         }
 
         return parent::updateFromPost($model, $post);
@@ -77,6 +80,7 @@ class ModelBackendController extends GenericModelController
         // handle() schaltet bei "Erstellen" (model-create) und nach "Speichern und weiter" selbst auf das
         // Detailformular um und weist $item zu; die Auswahllisten müssen deshalb immer bereitstehen.
         $smarty->assign('styles', ['boxes' => \__('Kästchen'), 'inline' => \__('Textzeile')])
+            ->assign('designs', ['light' => \__('Hell (Akzentfarbe)'), 'dark' => \__('Dunkle Leiste (schwarz, Ziffern in Akzentfarbe)')])
             ->assign('modes', ['hide' => \__('Ausblenden'), 'text' => \__('Hinweistext anzeigen'), 'keep' => \__('Ohne Countdown weiter anzeigen')])
             ->assign('productPages', ['none' => \__('Nein'), 'sale' => \__('Nur bei aktivem Sonderpreis'), 'all' => \__('Immer')]);
 

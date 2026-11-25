@@ -13,7 +13,8 @@ use stdClass;
  * liefert fertige Anzeige-Arrays ("Views") für Templates.
  *
  * View-Array: id, name, timestamp, until (ISO 8601 mit Zeitzone), expired, label, style,
- * mode (hide|text|keep), text (Hinweis nach Ablauf), units (Beschriftungen Tage/Std./Min./Sek.)
+ * mode (hide|text|keep), text (Hinweis nach Ablauf), units (Beschriftungen Tage/Std./Min./Sek.),
+ * kicker (kleine Zeile über der Beschriftung) und design (light|dark) für die Box auf Artikel- und Kategorieseiten
  */
 class CountdownService
 {
@@ -24,6 +25,9 @@ class CountdownService
     public const MODES = ['hide', 'text', 'keep'];
 
     public const PRODUCT_PAGE = ['none', 'sale', 'all'];
+
+    /** Design der Box auf Artikel- und Kategorieseiten (seit 2.23.0) */
+    public const DESIGNS = ['light', 'dark'];
 
     private const UNITS = [
         'ger' => ['d' => 'Tage', 'h' => 'Std.', 'm' => 'Min.', 's' => 'Sek.'],
@@ -214,7 +218,13 @@ class CountdownService
         $lang = $lang !== '' ? $lang : self::currentLanguage();
         $isEn = $lang === 'eng';
 
-        return self::buildView(
+        $kicker = $isEn && (string)($row->kicker_en ?? '') !== '' ? (string)$row->kicker_en : (string)($row->kicker ?? '');
+        $design = (string)($row->design ?? 'light');
+
+        return [
+            'kicker' => \trim($kicker),
+            'design' => \in_array($design, self::DESIGNS, true) ? $design : 'light',
+        ] + self::buildView(
             (int)$row->id,
             (string)$row->name,
             $timestamp,
@@ -254,6 +264,8 @@ class CountdownService
             'mode'      => \in_array($mode, self::MODES, true) ? $mode : 'hide',
             'text'      => \trim($text),
             'units'     => self::UNITS[$lang] ?? self::UNITS['ger'],
+            'kicker'    => '',
+            'design'    => 'light',
         ];
     }
 

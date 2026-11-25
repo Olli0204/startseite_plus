@@ -146,6 +146,8 @@ Unter **Plugins → Startseite Plus → Countdowns** werden Countdowns zentral g
 | Endzeitpunkt | Shop-Zeitzone; die Serverzeit wird im Formular angezeigt |
 | Beschriftung DE/EN | Text vor den Ziffern; auf der Artikelseite die Überschrift der Box (EN leer = DE) |
 | Darstellung | Kästchen oder Textzeile |
+| Kleine Zeile darüber DE/EN (ab 2.23.0) | Kicker in Großbuchstaben über der Beschriftung, nur in der Box auf Artikel- und Kategorieseiten |
+| Design auf Artikel-/Kategorieseite (ab 2.23.0) | Hell (Akzentfarbe, zentriert) oder Dunkle Leiste (schwarz, Text links, Ziffern in Akzentfarbe rechts; am Smartphone Ziffern über die volle Breite) |
 | Nach Ablauf | Ausblenden (blendet auch den Banner aus), Hinweistext anzeigen, ohne Countdown weiter anzeigen |
 | Hinweistext DE/EN | Text nach Ablauf bei „Hinweistext anzeigen“ |
 | Auf Artikeldetailseiten | Nein, nur bei aktivem Sonderpreis, immer |
@@ -226,6 +228,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.23.0         | 5.5.1 – 5.8.5 |
 | 2.22.0         | 5.5.1 – 5.8.5 |
 | 2.21.1         | 5.5.1 – 5.8.5 |
 | 2.21.0         | 5.5.1 – 5.8.5 |
@@ -260,6 +263,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.23.0
+- Countdown-Verwaltung: Design der Box auf Artikel- und Kategorieseiten wählbar („Hell“ wie bisher oder „Dunkle Leiste“ passend zum schwarzen Black-Week-Banner) und optionale kleine Zeile (Kicker) DE/EN über der Beschriftung. Migration ergänzt `design`, `kicker`, `kicker_en`
 
 ### 2.22.0
 - Countdown-Verwaltung: Feld „Nur für Kategorie“ (Artikelseiten zeigen den Countdown nur für Artikel dieser Kategorie, z. B. „Black Week Sale“) und Schalter „Auf der Kategorieseite anzeigen“ (Box über der Artikelliste). Migration ergänzt die Spalten `category` und `category_page`

@@ -52,6 +52,21 @@
 
                 <hr>
                 <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="kicker">Kleine Zeile darüber (DE):</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <input type="text" class="form-control" id="kicker" name="kicker" maxlength="100"
+                               value="{$item->kicker|default:''|escape:'html'}" placeholder="optional, z. B. Jeden Tag neue Angebote">
+                        <small class="text-muted">Nur in der Box auf Artikel- und Kategorieseiten, in Großbuchstaben über der Beschriftung.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="kicker_en">Kleine Zeile darüber (EN):</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <input type="text" class="form-control" id="kicker_en" name="kicker_en" maxlength="100"
+                               value="{$item->kicker_en|default:''|escape:'html'}" placeholder="optional, sonst DE">
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
                     <label class="col col-sm-4 col-form-label text-sm-right" for="label">Beschriftung (DE):</label>
                     <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
                         <input type="text" class="form-control" id="label" name="label" maxlength="150"
@@ -74,6 +89,17 @@
                                 <option value="{$k}"{if $item->style === $k} selected{/if}>{$v}</option>
                             {/foreach}
                         </select>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="design">Design auf Artikel-/Kategorieseite:</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <select class="custom-select" id="design" name="design">
+                            {foreach $designs|default:[] as $k => $v}
+                                <option value="{$k}"{if ($item->design|default:'light') === $k} selected{/if}>{$v}</option>
+                            {/foreach}
+                        </select>
+                        <small class="text-muted">„Dunkle Leiste“: Text links, Ziffern rechts – passend zum schwarzen Black-Week-Banner.</small>
                     </div>
                 </div>
 

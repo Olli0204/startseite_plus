@@ -129,7 +129,7 @@
         {* Countdowns mit Freigabe für diese Kategorieseite (Countdown-Verwaltung, seit 2.22.0) *}
         <link rel="stylesheet" href="{$spCommonUrl}common.css?v={$spVersion|escape:'html'}">
         {foreach $spCatCountdowns as $cd}
-            <div class="sp-cd-product sp-cd-product--category" data-sp-countdown-id="{$cd.id|intval}">
+            <div class="sp-cd-product sp-cd-product--category sp-cd-product--{$cd.design|default:'light'}" data-sp-countdown-id="{$cd.id|intval}">
                 {include file=$spCommonPath|cat:'countdown.tpl' cd=$cd dark=true heading=true}
             </div>
         {/foreach}
