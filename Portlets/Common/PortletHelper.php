@@ -486,20 +486,25 @@ trait PortletHelper
      */
     protected function propButtonStyle(string $label, string $default = 'primary', int $width = 33): array
     {
-        return $this->propSelect(
-            $label,
-            [
-                'primary'       => \__('Akzentfarbe'),
-                'light'         => \__('Weiß'),
-                'outline-light' => \__('Weiß umrandet'),
-                'dark'          => \__('Dunkel'),
-                'outline-dark'  => \__('Dunkel umrandet'),
-                'pill'          => \__('Grauer Pill-Button'),
-                'link'          => \__('Textlink'),
-            ],
-            $default,
-            $width
-        );
+        return $this->propSelect($label, $this->buttonStyleOptions(), $default, $width);
+    }
+
+    /**
+     * Button-Stile der Portlets (Klasse .sp-btn--<Schlüssel> in common.css).
+     *
+     * @return array<string, string>
+     */
+    protected function buttonStyleOptions(): array
+    {
+        return [
+            'primary'       => \__('Akzentfarbe'),
+            'light'         => \__('Weiß'),
+            'outline-light' => \__('Weiß umrandet'),
+            'dark'          => \__('Dunkel'),
+            'outline-dark'  => \__('Dunkel umrandet'),
+            'pill'          => \__('Grauer Pill-Button'),
+            'link'          => \__('Textlink'),
+        ];
     }
 
     /**

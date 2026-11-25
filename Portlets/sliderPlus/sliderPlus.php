@@ -35,6 +35,7 @@ class sliderPlus extends Portlet
         'kicker' => '',
         'desc'   => '',
         'button' => '',
+        'button-style' => '',
         'link'   => '',
         'alt'    => '',
         'focus'  => 'center',
@@ -139,7 +140,10 @@ class sliderPlus extends Portlet
             } elseif ($slide['url'] === '') {
                 continue;
             }
-            $slides[] = $slide;
+            // Button-Stil je Slide (seit 2.21.0): leer = Stil des Sliders
+            $styles                = $this->buttonStyleOptions();
+            $slide['button-style'] = isset($styles[$slide['button-style']]) ? $slide['button-style'] : '';
+            $slides[]              = $slide;
         }
 
         return $slides;
@@ -357,6 +361,15 @@ class sliderPlus extends Portlet
                         'width'       => 60,
                         'placeholder' => \__('Link – ohne Button-Text ist das ganze Bild verlinkt'),
                         'showIf'      => self::SHOW_IMAGE,
+                    ],
+                    [
+                        'name'    => 'button-style',
+                        'label'   => \__('Button-Stil dieser Slide'),
+                        'type'    => 'select',
+                        'width'   => 40,
+                        'options' => ['' => \__('Wie Slider')] + $this->buttonStyleOptions(),
+                        'default' => '',
+                        'showIf'  => self::SHOW_IMAGE,
                     ],
                     ['name' => 'alt', 'label' => \__('Alternativtext (SEO)'), 'width' => 60],
                     [

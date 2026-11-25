@@ -20,6 +20,7 @@ laden Bilder lazy mit `srcset`/WebP und lassen sich komplett im OPC konfiguriere
 - Seitenverhältnis getrennt für Desktop und Mobil (Bild wird per `object-fit: cover` zugeschnitten, Bildausschnitt je Slide wählbar) – ersetzt den alten „200 %-Breite“-Hack für Smartphones
 - Übergänge: Schieben, Überblenden, Ken Burns (langsamer Zoom)
 - Abdunkelung (Overlay), Textposition, Textstil (frei, dunkler/heller Kasten), Schriftgröße, Button-Stil
+- Button-Stil je Bild-Slide überschreibbar (ab 2.21.0), z. B. nur die Aktions-Slide in Akzentfarbe; Standard „Wie Slider“
 - Autoplay, Intervall, Pause bei Mouseover, Pfeile/Punkte ein- und ausschaltbar, Touch-Swipe
 - Ohne Button-Text ist das ganze Bild verlinkt
 - Basis: Bootstrap-4-Carousel aus NOVA, kein zusätzliches JavaScript
@@ -223,6 +224,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.21.0         | 5.5.1 – 5.8.5 |
 | 2.20.3         | 5.5.1 – 5.8.5 |
 | 2.20.2         | 5.5.1 – 5.8.4 |
 | 2.20.1         | 5.5.1 – 5.8.3 |
@@ -254,6 +256,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.21.0
+- Hero-Slider: Feld „Button-Stil dieser Slide“ je Bild-Slide („Wie Slider“ oder einer der Button-Stile), damit z. B. nur die Black-Week-Slide einen Button in Akzentfarbe bekommt
 
 ### 2.20.3
 - Kompatibilität mit JTL-Shop 5.8.5 geprüft: die Core-Änderungen 5.8.4 → 5.8.5 (Sicherheitsupdate) betreffen nur Backend (Benutzersprache, Länderverwaltung, OPC-Editor, Dateimanager, Weiterleitungsprüfung), die Kodierung von Artikelnamen in der Bestellung und phpseclib; keine vom Plugin genutzte API und keine NOVA-Templates sind betroffen. MaxShopVersion auf 5.8.5 angehoben
