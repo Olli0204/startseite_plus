@@ -103,7 +103,7 @@
                                     <p class="sp-hero__text">{$slide.desc|escape:'html'}</p>
                                 {/if}
                                 {if $hasButton}
-                                    <a class="sp-btn sp-btn--{$btnStyle} sp-hero__btn"{if $link !== '' && !$isPreview} href="{$link|escape:'html'}"{/if}>{$slide.button|escape:'html'}</a>
+                                    <a class="sp-btn sp-btn--{if $slide['button-style'] !== ''}{$slide['button-style']}{else}{$btnStyle}{/if} sp-hero__btn"{if $link !== '' && !$isPreview} href="{$link|escape:'html'}"{/if}>{$slide.button|escape:'html'}</a>
                                 {/if}
                             </div>
                         </div>
