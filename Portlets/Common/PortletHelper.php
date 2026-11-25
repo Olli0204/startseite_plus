@@ -503,6 +503,7 @@ trait PortletHelper
             'dark'          => \__('Dunkel'),
             'outline-dark'  => \__('Dunkel umrandet'),
             'pill'          => \__('Grauer Pill-Button'),
+            'pill-accent'   => \__('Pill-Button in Akzentfarbe'),
             'link'          => \__('Textlink'),
         ];
     }
