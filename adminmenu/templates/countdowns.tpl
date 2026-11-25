@@ -2,7 +2,7 @@
 {if $step === 'overview'}
     <p class="text-muted">
         Countdowns stehen im Aktions-Banner (OnPage Composer) zur Auswahl und können zusätzlich auf Artikeldetailseiten
-        angezeigt werden. Zeiten gelten in der Shop-Zeitzone. Aktuelle Serverzeit: <strong>{$now}</strong>
+        (auf Wunsch nur für Artikel einer Kategorie) und oben auf dieser Kategorieseite angezeigt werden. Zeiten gelten in der Shop-Zeitzone. Aktuelle Serverzeit: <strong>{$now}</strong>
     </p>
     {include file='tpl_inc/model_list.tpl'
         items=$models
@@ -114,6 +114,29 @@
                             {/foreach}
                         </select>
                         <small class="text-muted">Erscheint oberhalb der Variationen/Kaufbox; „Nur bei aktivem Sonderpreis“ zeigt den Countdown ausschließlich bei reduzierten Artikeln.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="category">Nur für Kategorie:</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <select class="custom-select" id="category" name="category">
+                            <option value="0">– alle Artikel –</option>
+                            {foreach $categories|default:[] as $category}
+                                <option value="{$category.id}"{if ($item->category|default:0|intval) === $category.id} selected{/if}>{$category.name|escape:'html'} ({$category.count} Artikel)</option>
+                            {/foreach}
+                        </select>
+                        <small class="text-muted">Artikelseiten zeigen den Countdown dann nur bei Artikeln, die dieser Kategorie zugeordnet sind (z. B. „Black Week Sale“). Neu zugeordnete Artikel sind automatisch dabei.</small>
+                    </div>
+                </div>
+                <div class="form-group form-row align-items-center">
+                    <label class="col col-sm-4 col-form-label text-sm-right" for="category_page">Auf der Kategorieseite anzeigen:</label>
+                    <div class="col-sm pl-sm-3 pr-sm-5 order-last order-sm-2">
+                        <div class="custom-control custom-checkbox">
+                            <input class="custom-control-input" type="checkbox" id="category_page" name="category_page" value="1"
+                                   {if ($item->category_page|default:0|intval) === 1}checked{/if}>
+                            <label class="custom-control-label" for="category_page"></label>
+                        </div>
+                        <small class="text-muted">Zeigt den Countdown oben auf der gewählten Kategorieseite, über der Artikelliste (nur mit gewählter Kategorie).</small>
                     </div>
                 </div>
             </div>

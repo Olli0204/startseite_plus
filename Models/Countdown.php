@@ -21,6 +21,8 @@ use JTL\Plugin\Admin\InputType;
  * @property string $expired_text
  * @property string $expired_text_en
  * @property string $product_page
+ * @property int    $category
+ * @property int    $category_page
  * @property int    $active
  * @method   int    getId()
  * @method   string getName()
@@ -100,6 +102,8 @@ final class Countdown extends DataModel
             'expired_text'    => $hidden('expired_text'),
             'expired_text_en' => $hidden('expired_text_en'),
             'product_page'    => $productPage,
+            'category'        => $hidden('category', 'int', 0),
+            'category_page'   => $hidden('category_page', 'tinyint', 0),
             'active'          => DataAttribute::create('active', 'tinyint', 1, false),
         ];
 

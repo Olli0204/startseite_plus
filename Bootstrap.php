@@ -101,6 +101,7 @@ class Bootstrap extends Bootstrapper
         $dispatcher->hookInto(\HOOK_FILTER_PAGE, function (): void {
             $this->assignNewsletterDeal();
             $this->assignCategoryBanner();
+            $this->assignCategoryCountdowns();
         });
         $dispatcher->hookInto(\HOOK_FILTER_ENDE, static function (): void {
             $page = DealPageRoute::current();
@@ -155,7 +156,11 @@ class Bootstrap extends Bootstrapper
             return;
         }
         $hasSpecialPrice = !empty($artikel->Preise->Sonderpreis_aktiv);
-        $smarty->assign('spProductCountdowns', CountdownService::create()->forProductPage($hasSpecialPrice));
+        $productIDs      = [(int)($artikel->kArtikel ?? 0), (int)($artikel->kVaterArtikel ?? 0)];
+        $smarty->assign(
+            'spProductCountdowns',
+            CountdownService::create()->forProductPage($hasSpecialPrice, '', $productIDs)
+        );
     }
 
     /**
@@ -202,6 +207,32 @@ class Bootstrap extends Bootstrapper
             return;
         }
         Shop::Smarty()->assign('spCatBanner', $banner)
+            ->assign('spCommonUrl', $this->getCommonUrl())
+            ->assign('spCommonPath', $this->getCommonPath())
+            ->assign('spVersion', $this->getPlugin()->getMeta()->getVersion());
+    }
+
+    /**
+     * Countdowns mit Freigabe "Auf der Kategorieseite anzeigen" für die aufgerufene Kategorie (seit 2.22.0).
+     */
+    public function assignCategoryCountdowns(): void
+    {
+        if (DealPageRoute::current() !== null) {
+            return;
+        }
+        try {
+            $filter = Shop::getProductFilter();
+            if (!$filter->hasCategory()) {
+                return;
+            }
+            $countdowns = CountdownService::create()->forCategoryPage((int)$filter->getCategory()->getValue());
+        } catch (\Throwable) {
+            return;
+        }
+        if ($countdowns === []) {
+            return;
+        }
+        Shop::Smarty()->assign('spCatCountdowns', $countdowns)
             ->assign('spCommonUrl', $this->getCommonUrl())
             ->assign('spCommonPath', $this->getCommonPath())
             ->assign('spVersion', $this->getPlugin()->getMeta()->getVersion());

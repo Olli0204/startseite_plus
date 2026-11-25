@@ -12,6 +12,7 @@ use JTL\Shop;
 use JTL\Smarty\JTLSmarty;
 use Plugin\startseite_plus\Countdown\CountdownService;
 use Plugin\startseite_plus\Models\Countdown;
+use Plugin\startseite_plus\NewsletterDeal\DealPageAdmin;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -32,6 +33,9 @@ class ModelBackendController extends GenericModelController
     {
         $post['name']   = \mb_substr(\trim((string)($post['name'] ?? '')), 0, 100);
         $post['active'] = isset($post['active']) ? 1 : 0;
+        // Kategorie (seit 2.22.0): 0 = keine Einschränkung; Kategorieseite nur mit gewählter Kategorie
+        $post['category']      = \max(0, (int)($post['category'] ?? 0));
+        $post['category_page'] = $post['category'] > 0 && isset($post['category_page']) ? 1 : 0;
 
         $until = \str_replace('T', ' ', \trim((string)($post['until'] ?? '')));
         $ts    = $until !== '' ? \strtotime($until) : false;
@@ -68,6 +72,8 @@ class ModelBackendController extends GenericModelController
             $tab = 'detail';
         }
 
+        // Kategorien auch für das per handle() geöffnete Detailformular ("Erstellen")
+        $smarty->assign('categories', DealPageAdmin::categoryList($this->getDB()));
         // handle() schaltet bei "Erstellen" (model-create) und nach "Speichern und weiter" selbst auf das
         // Detailformular um und weist $item zu; die Auswahllisten müssen deshalb immer bereitstehen.
         $smarty->assign('styles', ['boxes' => \__('Kästchen'), 'inline' => \__('Textzeile')])
