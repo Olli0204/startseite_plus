@@ -190,3 +190,5 @@
 }
 .sp-cd-product[hidden] { display: none !important; }
 .sp-cd-product .sp-cd__unit { background: rgba(0, 0, 0, .06); }
+/* Kategorieseite (seit 2.22.0): über der Artikelliste */
+.sp-cd-product.sp-cd-product--category { margin: 0 0 1.5rem; }

@@ -431,8 +431,18 @@ final class DealPageAdmin
      */
     private function categoryOptions(): array
     {
+        return self::categoryList($this->db);
+    }
+
+    /**
+     * Kategoriebaum als flache Liste mit Pfad und Artikelanzahl (auch für die Countdown-Verwaltung).
+     *
+     * @return array<int, array{id: int, name: string, count: int}>
+     */
+    public static function categoryList(DbInterface $db): array
+    {
         try {
-            $rows = $this->db->getObjects(
+            $rows = $db->getObjects(
                 'SELECT k.kKategorie, k.kOberKategorie, k.cName, COUNT(ka.kArtikel) AS cnt
                     FROM tkategorie k
                     LEFT JOIN tkategorieartikel ka ON ka.kKategorie = k.kKategorie

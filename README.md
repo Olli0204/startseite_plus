@@ -149,6 +149,8 @@ Unter **Plugins → Startseite Plus → Countdowns** werden Countdowns zentral g
 | Nach Ablauf | Ausblenden (blendet auch den Banner aus), Hinweistext anzeigen, ohne Countdown weiter anzeigen |
 | Hinweistext DE/EN | Text nach Ablauf bei „Hinweistext anzeigen“ |
 | Auf Artikeldetailseiten | Nein, nur bei aktivem Sonderpreis, immer |
+| Nur für Kategorie (ab 2.22.0) | Artikelseiten zeigen den Countdown nur bei Artikeln (bzw. deren Vaterartikel), die dieser Kategorie zugeordnet sind (`tkategorieartikel`); – alle Artikel – = keine Einschränkung |
+| Auf der Kategorieseite anzeigen (ab 2.22.0) | Countdown-Box oben auf der gewählten Kategorieseite, über der Artikelliste (Block `productlist-header-description`) |
 | Aktiv | inaktive Countdowns werden nirgends ausgegeben |
 
 Verwendung:
@@ -224,6 +226,7 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 
 | Plugin-Version | JTL-Shop      |
 |----------------|---------------|
+| 2.22.0         | 5.5.1 – 5.8.5 |
 | 2.21.1         | 5.5.1 – 5.8.5 |
 | 2.21.0         | 5.5.1 – 5.8.5 |
 | 2.20.3         | 5.5.1 – 5.8.5 |
@@ -257,6 +260,9 @@ Tabelle `startseite_plus_nl_deal`, Template-Block `productlist-header-heading`.
 4. Nach dem Update Template-Cache leeren (Systemverwaltung → Cache)
 
 ## Changelog
+
+### 2.22.0
+- Countdown-Verwaltung: Feld „Nur für Kategorie“ (Artikelseiten zeigen den Countdown nur für Artikel dieser Kategorie, z. B. „Black Week Sale“) und Schalter „Auf der Kategorieseite anzeigen“ (Box über der Artikelliste). Migration ergänzt die Spalten `category` und `category_page`
 
 ### 2.21.1
 - Neuer Button-Stil „Pill-Button in Akzentfarbe“ (abgerundet wie der graue Pill-Button, Farbe wie „Akzentfarbe“) für alle Portlets mit Button-Stil-Auswahl

@@ -97,10 +97,13 @@ class CountdownService
 
     /**
      * Countdowns für die Artikeldetailseite. Abgelaufene erscheinen nur mit Hinweistext.
+     * Countdowns mit Kategorie (seit 2.22.0) erscheinen nur, wenn der Artikel oder sein Vaterartikel dieser Kategorie
+     * zugeordnet ist.
      *
+     * @param int[] $productIDs kArtikel und ggf. kVaterArtikel des angezeigten Artikels
      * @return array<int, array<string, mixed>>
      */
-    public function forProductPage(bool $hasSpecialPrice, string $lang = ''): array
+    public function forProductPage(bool $hasSpecialPrice, string $lang = '', array $productIDs = []): array
     {
         try {
             $rows = $this->db->getObjects(
@@ -111,10 +114,18 @@ class CountdownService
 
             return [];
         }
-        $views = [];
+        $views      = [];
+        $categories = null;
         foreach ($rows as $row) {
             if ($row->product_page === 'sale' && !$hasSpecialPrice) {
                 continue;
+            }
+            $category = (int)($row->category ?? 0);
+            if ($category > 0) {
+                $categories ??= $this->productCategories($productIDs);
+                if (!isset($categories[$category])) {
+                    continue;
+                }
             }
             $view = $this->toView($row, $lang);
             if ($view === null || ($view['expired'] && $view['mode'] !== 'text')) {
@@ -124,6 +135,68 @@ class CountdownService
         }
 
         return $views;
+    }
+
+    /**
+     * Countdowns, die oben auf dieser Kategorieseite erscheinen sollen (seit 2.22.0). Abgelaufene nur mit Hinweistext.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function forCategoryPage(int $categoryID, string $lang = ''): array
+    {
+        if ($categoryID <= 0) {
+            return [];
+        }
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT * FROM ' . self::TABLE . ' WHERE active = 1 AND category = :cat AND category_page = 1
+                    ORDER BY `until` ASC',
+                ['cat' => $categoryID]
+            );
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+        $views = [];
+        foreach ($rows as $row) {
+            $view = $this->toView($row, $lang);
+            if ($view === null || ($view['expired'] && $view['mode'] !== 'text')) {
+                continue;
+            }
+            $views[] = $view;
+        }
+
+        return $views;
+    }
+
+    /**
+     * Kategorien, denen die Artikel direkt zugeordnet sind (kKategorie => true).
+     *
+     * @param int[] $productIDs
+     * @return array<int, true>
+     */
+    private function productCategories(array $productIDs): array
+    {
+        $ids = \array_values(\array_unique(\array_filter(\array_map('\intval', $productIDs), static fn(int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        try {
+            $rows = $this->db->getObjects(
+                'SELECT DISTINCT kKategorie FROM tkategorieartikel WHERE kArtikel IN (' . \implode(',', $ids) . ')'
+            );
+        } catch (\Throwable $e) {
+            $this->logError($e);
+
+            return [];
+        }
+        $categories = [];
+        foreach ($rows as $row) {
+            $categories[(int)$row->kKategorie] = true;
+        }
+
+        return $categories;
     }
 
     /**
