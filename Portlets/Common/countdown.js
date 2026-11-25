@@ -30,7 +30,7 @@
                         return;
                     }
                     var units = el.querySelector('.sp-cd__units');
-                    var label = el.querySelector('.sp-cd__label');
+                    var label = el.querySelector('.sp-cd__head') || el.querySelector('.sp-cd__label');
                     var text  = el.querySelector('.sp-cd__expired');
                     if (units) { units.hidden = true; }
                     if (label) { label.hidden = true; }

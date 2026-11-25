@@ -1,5 +1,6 @@
 {* Startseite Plus – gemeinsames Countdown-Snippet
-   Parameter: cd (View-Array aus CountdownService), dark (bool: dunkle Ziffern auf hellem Grund), heading (bool: Label als Überschrift) *}
+   Parameter: cd (View-Array aus CountdownService), dark (bool: dunkle Ziffern auf hellem Grund), heading (bool: Label als Überschrift)
+   Mit heading erscheint eine Kicker-Zeile (cd.kicker, seit 2.23.0) über der Beschriftung. *}
 {$dark    = $dark|default:false}
 {$heading = $heading|default:false}
 {if !empty($cd)}
@@ -7,7 +8,13 @@
      data-sp-until="{$cd.until|escape:'html'}"
      data-sp-expired="{$cd.mode}">
     {if !$cd.expired}
-        {if $cd.label !== ''}
+        {$cdKicker = $cd.kicker|default:''}
+        {if $heading && ($cdKicker !== '' || $cd.label !== '')}
+            <span class="sp-cd__head">
+                {if $cdKicker !== ''}<span class="sp-kicker sp-cd__kicker">{$cdKicker|escape:'html'}</span>{/if}
+                {if $cd.label !== ''}<span class="sp-cd__label sp-cd__label--heading">{$cd.label|escape:'html'}</span>{/if}
+            </span>
+        {elseif $cd.label !== ''}
             <span class="sp-cd__label{if $heading} sp-cd__label--heading{/if}">{$cd.label|escape:'html'}</span>
         {/if}
         <span class="sp-cd__units">

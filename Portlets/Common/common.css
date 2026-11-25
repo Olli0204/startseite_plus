@@ -192,3 +192,32 @@
 .sp-cd-product .sp-cd__unit { background: rgba(0, 0, 0, .06); }
 /* Kategorieseite (seit 2.22.0): über der Artikelliste */
 .sp-cd-product.sp-cd-product--category { margin: 0 0 1.5rem; }
+
+/* Kicker über der Beschriftung (seit 2.23.0) */
+.sp-cd__head { display: flex; flex-direction: column; align-items: center; }
+.sp-cd .sp-cd__kicker { margin: 0 0 .15rem; font-size: .7rem; }
+
+/* Dunkle Leiste (seit 2.23.0): schwarz wie das Aktions-Banner, Text links, Ziffern in Akzentfarbe rechts */
+.sp-cd-product.sp-cd-product--dark {
+    padding: 1rem 1.25rem;
+    border-color: #111;
+    background: #111;
+    color: #fff;
+    text-align: left;
+}
+.sp-cd-product--dark .sp-cd--stacked {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .75rem 1.5rem;
+}
+.sp-cd-product--dark .sp-cd__head { flex: 1 1 12rem; align-items: flex-start; }
+.sp-cd-product--dark .sp-cd__label--heading { font-size: 1.15rem; font-weight: 700; }
+.sp-cd-product--dark .sp-cd__unit { background: rgba(255, 255, 255, .08); }
+.sp-cd-product--dark .sp-cd__num { color: var(--sp-accent, var(--primary, #FFA54F)); }
+.sp-cd-product--dark .sp-cd__lbl { opacity: .7; }
+.sp-cd-product--dark .sp-cd__expired { flex: 1 1 100%; }
+@media (max-width: 575.98px) {
+    .sp-cd-product--dark .sp-cd__units { width: 100%; }
+    .sp-cd-product--dark .sp-cd__unit { flex: 1 1 0; min-width: 0; }
+}
